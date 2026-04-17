@@ -510,20 +510,22 @@ function avatarInitials(name){const p=name.trim().split(/\s+/);return p.length>=
 ══════════════════════════════════════════════ */
 function computeStandings(season){
   if(!season) return [];
+  // Always work on a deep-fresh copy to avoid stale reference issues
+  const s = JSON.parse(JSON.stringify(season));
   const map={};
-  season.players.forEach(p=>{map[p.id]={id:p.id,name:p.name,aciertos:0};});
+  s.players.forEach(p=>{map[p.id]={id:p.id,name:p.name,aciertos:0};});
 
-  // Si hay datos importados, empezar desde ahí
-  if(season.imported&&season.imported.standings){
-    season.imported.standings.forEach(s=>{
-      if(map[s.playerId]) map[s.playerId].aciertos=s.aciertos;
+  // Si hay datos importados, cargar puntuaciones base
+  const hasImport = s.imported && s.imported.upToRound && s.imported.standings && s.imported.standings.length;
+  if(hasImport){
+    s.imported.standings.forEach(st=>{
+      if(map[st.playerId]!==undefined) map[st.playerId].aciertos=st.aciertos;
     });
   }
 
-  // Sumar todas las jornadas registradas manualmente
-  // Si hay datos importados, sólo sumar jornadas posteriores al punto de importación
-  const fromRound=(season.imported&&season.imported.upToRound)||0;
-  (season.jornadas||[]).filter(j=>j.num>fromRound).forEach(j=>{
+  // Sumar jornadas manuales. Si hay importación, sólo las posteriores.
+  const fromRound = hasImport ? s.imported.upToRound : 0;
+  (s.jornadas||[]).filter(j=>j.num>fromRound).forEach(j=>{
     (j.results||[]).forEach(r=>{
       if(map[r.playerId]!==undefined) map[r.playerId].aciertos+=r.aciertos;
     });
@@ -1080,7 +1082,7 @@ function openExportModal(mode){
   $('modal-export').classList.add('open');
 }
 
-function buildImageHtml(mode, season){
+function buildImageHtml(mode, season, precomputedStandings){
   const pad=n=>n.toString().padStart(2,'0');
   const now=new Date();
   const dateStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();
@@ -1102,7 +1104,8 @@ function buildImageHtml(mode, season){
 
   // ── CLASIFICACIÓN en 3 columnas ──
   if(mode==='clas'){
-    const standings=computeStandings(season);
+    // Use precomputed standings if provided, otherwise compute fresh
+    const standings=precomputedStandings||computeStandings(season);
     const last=lastJornada(season);
     const subtitle=last?(last.imported?`Hasta jornada ${last.num}`:`Tras jornada ${last.num}`):'Inicio de temporada';
 
@@ -1206,13 +1209,18 @@ function buildImageHtml(mode, season){
 }
 
 function exportImage(){
-  // Always reload from localStorage to ensure latest saved data
+  // Force fresh load from localStorage
   db=loadDb();
   const season=getSeason();
+  if(!season){showToast('Sin temporada activa',2000);return;}
+
+  // Pre-compute standings NOW from fresh data, before any async operations
+  const freshStandings = exportMode==='clas' ? computeStandings(season) : null;
+
   const pad=n=>n.toString().padStart(2,'0');
   const now=new Date();
 
-  const imgHtml=buildImageHtml(exportMode, season);
+  const imgHtml=buildImageHtml(exportMode, season, freshStandings);
   if(!imgHtml) return;
 
   const container=document.createElement('div');

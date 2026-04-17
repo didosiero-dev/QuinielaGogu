@@ -472,7 +472,6 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 <input type="file" id="excel-input" accept=".xlsx,.xls,.csv">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 /* ══════════════════════════════════════════════
    BASE DE DATOS
@@ -510,24 +509,21 @@ function avatarInitials(name){const p=name.trim().split(/\s+/);return p.length>=
 ══════════════════════════════════════════════ */
 function computeStandings(season){
   if(!season) return [];
-  // Always work on a deep-fresh copy to avoid stale reference issues
-  const s = JSON.parse(JSON.stringify(season));
   const map={};
-  s.players.forEach(p=>{map[p.id]={id:p.id,name:p.name,aciertos:0};});
+  season.players.forEach(p=>{map[p.id]={id:p.id,name:p.name,aciertos:0};});
 
-  // Si hay datos importados, cargar puntuaciones base
-  const hasImport = s.imported && s.imported.upToRound && s.imported.standings && s.imported.standings.length;
-  if(hasImport){
-    s.imported.standings.forEach(st=>{
-      if(map[st.playerId]!==undefined) map[st.playerId].aciertos=st.aciertos;
+  // Si hay datos importados, empezar desde ahí
+  if(season.imported&&season.imported.standings){
+    season.imported.standings.forEach(s=>{
+      if(map[s.playerId]) map[s.playerId].aciertos=s.aciertos;
     });
   }
 
-  // Sumar jornadas manuales. Si hay importación, sólo las posteriores.
-  const fromRound = hasImport ? s.imported.upToRound : 0;
-  (s.jornadas||[]).filter(j=>j.num>fromRound).forEach(j=>{
+  // Sumar jornadas normales (posteriores a la importación)
+  const fromRound=(season.imported&&season.imported.upToRound)||0;
+  (season.jornadas||[]).filter(j=>j.num>fromRound).forEach(j=>{
     (j.results||[]).forEach(r=>{
-      if(map[r.playerId]!==undefined) map[r.playerId].aciertos+=r.aciertos;
+      if(map[r.playerId]) map[r.playerId].aciertos+=r.aciertos;
     });
   });
 
@@ -1082,192 +1078,294 @@ function openExportModal(mode){
   $('modal-export').classList.add('open');
 }
 
-function buildImageHtml(mode, season, precomputedStandings){
+function exportImage(){
+  const season=getSeason();
+  if(!season){showToast('Sin temporada activa',2000);return;}
   const pad=n=>n.toString().padStart(2,'0');
   const now=new Date();
   const dateStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();
 
-  // Shared styles
-  const W=720; // px width — good for WhatsApp
-  const BG='#FFFFFF';
-  const HEADER_BG='#1a6b2e';
-  const ROW_EVEN='#F0F7F1';
-  const ROW_ODD='#FFFFFF';
-  const BORDER='#C8E6CC';
-  const TEXT='#1A2520';
-  const MUTED='#5A7060';
-  const GOLD='#B8860B'; const SILVER='#666'; const BRONZE='#8B4513';
-  const GREEN='#1a6b2e';
-
-  function medalColor(i){ return i===0?GOLD:i===1?SILVER:i===2?BRONZE:MUTED; }
-  function medalSymbol(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':''; }
-
-  // ── CLASIFICACIÓN en 3 columnas ──
-  if(mode==='clas'){
-    // Use precomputed standings if provided, otherwise compute fresh
-    const standings=precomputedStandings||computeStandings(season);
-    const last=lastJornada(season);
-    const subtitle=last?(last.imported?`Hasta jornada ${last.num}`:`Tras jornada ${last.num}`):'Inicio de temporada';
-
-    // Split into 3 columns of roughly equal size
-    const total=standings.length;
-    const col1end=Math.ceil(total/3);
-    const col2end=Math.ceil(total*2/3);
-    const cols=[standings.slice(0,col1end), standings.slice(col1end,col2end), standings.slice(col2end)];
-
-    // Build each column as an HTML table
-    function buildCol(players, startPos){
-      return players.map((p,i)=>{
-        const pos=startPos+i;
-        const bg=i%2===0?ROW_EVEN:ROW_ODD;
-        const medal=medalSymbol(pos);
-        const posColor=medalColor(pos);
-        const bold=pos<3?'font-weight:700':'font-weight:400';
-        return `<tr style="background:${bg}">
-          <td style="padding:5px 4px 5px 8px;font-size:13px;font-weight:700;color:${posColor};width:28px;text-align:right">${medal||pos+1}</td>
-          <td style="padding:5px 4px;font-size:12px;${bold};color:${TEXT};max-width:130px;overflow:hidden;white-space:nowrap">${p.name}</td>
-          <td style="padding:5px 8px 5px 4px;font-size:13px;font-weight:700;color:${GREEN};text-align:right;width:30px">${p.aciertos}</td>
-        </tr>`;
-      }).join('');
-    }
-
-    const tableStyle=`border-collapse:collapse;width:100%;font-family:Arial,sans-serif`;
-    const thStyle=`background:${HEADER_BG};color:#fff;font-size:11px;padding:6px 8px;text-align:left;font-weight:600;letter-spacing:.03em`;
-
-    return `<div style="background:${BG};width:${W}px;font-family:Arial,sans-serif;padding:0;border-radius:8px;overflow:hidden;border:1px solid ${BORDER}">
-      <div style="background:${HEADER_BG};padding:14px 20px 12px">
-        <div style="color:rgba(255,255,255,.7);font-size:11px;letter-spacing:.08em;text-transform:uppercase">${season.name} · Quiniela Peña</div>
-        <div style="color:#fff;font-size:20px;font-weight:700;margin-top:3px">Clasificación General</div>
-        <div style="color:rgba(255,255,255,.75);font-size:12px;margin-top:3px">${subtitle} · ${dateStr}</div>
-      </div>
-      <div style="display:flex;gap:0;padding:12px;gap:10px;align-items:flex-start">
-        ${cols.map((col,ci)=>{
-          const start=ci===0?0:ci===1?col1end:col2end;
-          return `<div style="flex:1;border:1px solid ${BORDER};border-radius:6px;overflow:hidden">
-            <table style="${tableStyle}">
-              <thead><tr>
-                <th style="${thStyle};width:28px">#</th>
-                <th style="${thStyle}">Nombre</th>
-                <th style="${thStyle};text-align:right;width:30px">✓</th>
-              </tr></thead>
-              <tbody>${buildCol(col,start)}</tbody>
-            </table>
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="text-align:center;padding:6px;font-size:10px;color:${MUTED};border-top:1px solid ${BORDER}">Quiniela Peña · ${dateStr}</div>
-    </div>`;
+  if(exportMode==='clas'){
+    drawClasCanvas(season, dateStr);
+  } else {
+    drawJornadaCanvas(season, exportMode, dateStr);
   }
-
-  // ── JORNADA en 2 columnas ──
-  const j=(season.jornadas||[]).find(j=>j.num===mode);
-  if(!j) return '';
-  const sorted=j.results.filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
-  const half=Math.ceil(sorted.length/2);
-  const cols2=[sorted.slice(0,half), sorted.slice(half)];
-
-  function buildJornCol(results, startPos){
-    return results.map((r,i)=>{
-      const pos=startPos+i;
-      const bg=i%2===0?ROW_EVEN:ROW_ODD;
-      const name=getName(season,r.playerId);
-      const prizeHtml=r.prize>0?`<span style="font-size:10px;color:#8B6914;background:#FEF9C3;border-radius:4px;padding:1px 5px;margin-left:3px">€${r.prize}</span>`:'';
-      return `<tr style="background:${bg}">
-        <td style="padding:5px 4px 5px 8px;font-size:12px;font-weight:600;color:${MUTED};width:24px;text-align:right">${pos+1}</td>
-        <td style="padding:5px 4px;font-size:12px;color:${TEXT};white-space:nowrap">${name}${prizeHtml}</td>
-        <td style="padding:5px 8px 5px 4px;font-size:13px;font-weight:700;color:${GREEN};text-align:right;width:26px">${r.aciertos}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  const tableStyle=`border-collapse:collapse;width:100%;font-family:Arial,sans-serif`;
-  const thStyle=`background:${HEADER_BG};color:#fff;font-size:11px;padding:6px 8px;text-align:left;font-weight:600`;
-
-  return `<div style="background:${BG};width:${W}px;font-family:Arial,sans-serif;border-radius:8px;overflow:hidden;border:1px solid ${BORDER}">
-    <div style="background:${HEADER_BG};padding:14px 20px 12px">
-      <div style="color:rgba(255,255,255,.7);font-size:11px;letter-spacing:.08em;text-transform:uppercase">${season.name} · Quiniela Peña</div>
-      <div style="color:#fff;font-size:20px;font-weight:700;margin-top:3px">Jornada ${mode}</div>
-      <div style="color:rgba(255,255,255,.75);font-size:12px;margin-top:3px">${sorted.length} jugadores con aciertos · ${dateStr}</div>
-    </div>
-    <div style="display:flex;gap:10px;padding:12px;align-items:flex-start">
-      ${cols2.map((col,ci)=>{
-        const start=ci===0?0:half;
-        return `<div style="flex:1;border:1px solid ${BORDER};border-radius:6px;overflow:hidden">
-          <table style="${tableStyle}">
-            <thead><tr>
-              <th style="${thStyle};width:24px">#</th>
-              <th style="${thStyle}">Nombre</th>
-              <th style="${thStyle};text-align:right;width:26px">✓</th>
-            </tr></thead>
-            <tbody>${buildJornCol(col,start)}</tbody>
-          </table>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="text-align:center;padding:6px;font-size:10px;color:${MUTED};border-top:1px solid ${BORDER}">Quiniela Peña · ${dateStr}</div>
-  </div>`;
 }
 
-function exportImage(){
-  // Force fresh load from localStorage
-  db=loadDb();
-  const season=getSeason();
-  if(!season){showToast('Sin temporada activa',2000);return;}
+function downloadCanvas(canvas, filename){
+  canvas.toBlob(blob=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    $('modal-export').classList.remove('open');
+    showToast('✓ Imagen exportada');
+  },'image/png');
+}
 
-  // Pre-compute standings from fresh season
-  const freshStandings = exportMode==='clas' ? computeStandings(season) : null;
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
 
-  const pad=n=>n.toString().padStart(2,'0');
-  const now=new Date();
+function truncate(ctx, text, maxWidth){
+  if(ctx.measureText(text).width<=maxWidth) return text;
+  let t=text;
+  while(t.length>0 && ctx.measureText(t+'…').width>maxWidth) t=t.slice(0,-1);
+  return t+'…';
+}
 
-  const imgHtml=buildImageHtml(exportMode, season, freshStandings);
-  if(!imgHtml) return;
+function drawClasCanvas(season, dateStr){
+  const standings=computeStandings(season);
+  const last=lastJornada(season);
+  const subtitle=last?(last.imported?'Hasta jornada '+last.num:'Tras jornada '+last.num):'';
+  const n=standings.length;
 
-  // Remove any leftover export containers
-  document.querySelectorAll('.export-container').forEach(el=>el.remove());
+  // Layout: 3 columns, white bg
+  const COLS=n<=40?2:3;
+  const perCol=Math.ceil(n/COLS);
+  const COL_W=340;
+  const PAD=20;
+  const ROW_H=26;
+  const HEADER_H=80;
+  const FOOTER_H=28;
+  const W=PAD*2+COL_W*COLS+(COLS-1)*10;
+  const H=HEADER_H+perCol*ROW_H+PAD+FOOTER_H;
 
-  const container=document.createElement('div');
-  container.className='export-container';
-  container.style.cssText='position:absolute;left:-9999px;top:0;width:720px;visibility:hidden';
-  container.innerHTML=imgHtml;
-  document.body.appendChild(container);
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
 
-  // Wait two animation frames so browser fully renders the new DOM before capturing
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      // Force a layout reflow
-      void container.offsetHeight;
-      const target = container.firstChild || container;
-      html2canvas(target,{
-        backgroundColor:'#FFFFFF',
-        scale:2,
-        width:720,
-        useCORS:false,
-        allowTaint:true,
-        logging:false,
-        imageTimeout:0,
-        removeContainer:false
-      }).then(canvas=>{
-        container.remove();
-        canvas.toBlob(blob=>{
-          const url=URL.createObjectURL(blob);
-          const a=document.createElement('a');
-          a.href=url;
-          a.download=`quiniela-${exportMode==='clas'?'clasificacion':'jornada-'+exportMode}-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}.png`;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          $('modal-export').classList.remove('open');
-          showToast('✓ Imagen exportada');
-        },'image/png');
-      });
-    });
-  });
+  // Background
+  ctx.fillStyle='#F8FAF8';
+  ctx.fillRect(0,0,W,H);
+
+  // Header band
+  ctx.fillStyle='#1a5c2e';
+  ctx.fillRect(0,0,W,HEADER_H);
+
+  // Header text
+  ctx.fillStyle='rgba(255,255,255,0.65)';
+  ctx.font='500 11px Arial';
+  ctx.fillText((season.name+' · Quiniela Peña').toUpperCase(),PAD,22);
+
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 22px Arial';
+  ctx.fillText('Clasificación General',PAD,48);
+
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.font='13px Arial';
+  ctx.fillText((subtitle?subtitle+' · ':'')+dateStr,PAD,68);
+
+  // Columns
+  for(let c=0;c<COLS;c++){
+    const start=c*perCol;
+    const end=Math.min(start+perCol,n);
+    const cx=PAD+c*(COL_W+10);
+
+    // Column header
+    ctx.fillStyle='#2d7a45';
+    ctx.fillRect(cx,HEADER_H,COL_W,22);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 10px Arial';
+    ctx.fillText('#',cx+6,HEADER_H+15);
+    ctx.fillText('NOMBRE',cx+32,HEADER_H+15);
+    ctx.fillText('PTS',cx+COL_W-24,HEADER_H+15);
+
+    for(let i=start;i<end;i++){
+      const p=standings[i];
+      const ry=HEADER_H+22+(i-start)*ROW_H;
+      const isEven=(i-start)%2===0;
+
+      // Row background
+      ctx.fillStyle=i<3?'#e8f5ec':(isEven?'#ffffff':'#f3f9f4');
+      ctx.fillRect(cx,ry,COL_W,ROW_H);
+
+      // Left border accent for top 3
+      if(i<3){
+        ctx.fillStyle=i===0?'#FFB800':i===1?'#9CA3AF':'#CD7F32';
+        ctx.fillRect(cx,ry,3,ROW_H);
+      }
+
+      // Position
+      const posColor=i===0?'#B8860B':i===1?'#666666':i===2?'#8B4513':'#9CA3AF';
+      ctx.fillStyle=posColor;
+      ctx.font=i<3?'bold 12px Arial':'11px Arial';
+      ctx.textAlign='right';
+      ctx.fillText(i+1,cx+26,ry+ROW_H/2+4);
+
+      // Name
+      ctx.fillStyle=i<3?'#1a3d24':'#2d3748';
+      ctx.font=i<3?'bold 12px Arial':'12px Arial';
+      ctx.textAlign='left';
+      const maxNameW=COL_W-70;
+      ctx.fillText(truncate(ctx,p.name,maxNameW),cx+32,ry+ROW_H/2+4);
+
+      // Points
+      ctx.fillStyle=i<3?'#1a5c2e':'#2d7a45';
+      ctx.font='bold 13px Arial';
+      ctx.textAlign='right';
+      ctx.fillText(p.aciertos,cx+COL_W-6,ry+ROW_H/2+4);
+
+      // Row separator
+      ctx.strokeStyle='#e2ede5';
+      ctx.lineWidth=0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx,ry+ROW_H);
+      ctx.lineTo(cx+COL_W,ry+ROW_H);
+      ctx.stroke();
+    }
+
+    // Column border
+    ctx.strokeStyle='#c8dece';
+    ctx.lineWidth=1;
+    ctx.strokeRect(cx,HEADER_H,COL_W,22+(end-start)*ROW_H);
+  }
+
+  // Footer
+  const fy=H-FOOTER_H;
+  ctx.fillStyle='#e8f5ec';
+  ctx.fillRect(0,fy,W,FOOTER_H);
+  ctx.strokeStyle='#c8dece';
+  ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+  ctx.fillStyle='#5a7060';
+  ctx.font='11px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('Quiniela Peña · '+n+' participantes · '+dateStr,W/2,fy+18);
+
+  ctx.textAlign='left';
+  downloadCanvas(canvas,`quiniela-clasificacion-${dateStr.replace(/\//g,'-')}.png`);
+}
+
+function drawJornadaCanvas(season, jnum, dateStr){
+  const j=(season.jornadas||[]).find(j=>j.num===jnum);
+  if(!j){showToast('Jornada no encontrada',2000);return;}
+  const sorted=j.results.filter(r=>r.aciertos>0)
+    .sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
+  const n=sorted.length;
+  if(!n){showToast('No hay aciertos en esta jornada',2000);return;}
+
+  const COLS=n<=30?1:2;
+  const perCol=Math.ceil(n/COLS);
+  const COL_W=COLS===1?400:340;
+  const PAD=20;
+  const ROW_H=26;
+  const HEADER_H=80;
+  const FOOTER_H=28;
+  const W=PAD*2+COL_W*COLS+(COLS-1)*10;
+  const H=HEADER_H+perCol*ROW_H+PAD+FOOTER_H;
+
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  ctx.fillStyle='#F8FAF8';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle='#1a5c2e';
+  ctx.fillRect(0,0,W,HEADER_H);
+
+  ctx.fillStyle='rgba(255,255,255,0.65)';
+  ctx.font='500 11px Arial';
+  ctx.fillText((season.name+' · Quiniela Peña').toUpperCase(),PAD,22);
+
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 22px Arial';
+  ctx.fillText('Jornada '+jnum,PAD,48);
+
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.font='13px Arial';
+  ctx.fillText(n+' jugadores con aciertos · '+dateStr,PAD,68);
+
+  for(let c=0;c<COLS;c++){
+    const start=c*perCol;
+    const end=Math.min(start+perCol,n);
+    const cx=PAD+c*(COL_W+10);
+
+    ctx.fillStyle='#2d7a45';
+    ctx.fillRect(cx,HEADER_H,COL_W,22);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 10px Arial';
+    ctx.fillText('#',cx+6,HEADER_H+15);
+    ctx.fillText('NOMBRE',cx+32,HEADER_H+15);
+    ctx.fillText('PTS',cx+COL_W-24,HEADER_H+15);
+
+    for(let i=start;i<end;i++){
+      const r=sorted[i];
+      const name=getName(season,r.playerId);
+      const ry=HEADER_H+22+(i-start)*ROW_H;
+      const isEven=(i-start)%2===0;
+
+      ctx.fillStyle=isEven?'#ffffff':'#f3f9f4';
+      ctx.fillRect(cx,ry,COL_W,ROW_H);
+
+      ctx.fillStyle='#9CA3AF';
+      ctx.font='11px Arial';
+      ctx.textAlign='right';
+      ctx.fillText(i+1,cx+26,ry+ROW_H/2+4);
+
+      ctx.fillStyle='#2d3748';
+      ctx.font='12px Arial';
+      ctx.textAlign='left';
+      const prizeW=r.prize>0?55:0;
+      ctx.fillText(truncate(ctx,name,COL_W-70-prizeW),cx+32,ry+ROW_H/2+4);
+
+      if(r.prize>0){
+        ctx.fillStyle='#FEF3C7';
+        roundRect(ctx,cx+COL_W-58,ry+4,50,ROW_H-8,4);
+        ctx.fill();
+        ctx.fillStyle='#92400E';
+        ctx.font='bold 10px Arial';
+        ctx.textAlign='center';
+        ctx.fillText(fmt(r.prize),cx+COL_W-33,ry+ROW_H/2+4);
+      }
+
+      ctx.fillStyle='#2d7a45';
+      ctx.font='bold 13px Arial';
+      ctx.textAlign='right';
+      ctx.fillText(r.aciertos,cx+COL_W-6,ry+ROW_H/2+4);
+
+      ctx.strokeStyle='#e2ede5';
+      ctx.lineWidth=0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx,ry+ROW_H); ctx.lineTo(cx+COL_W,ry+ROW_H);
+      ctx.stroke();
+    }
+    ctx.strokeStyle='#c8dece';
+    ctx.lineWidth=1;
+    ctx.strokeRect(cx,HEADER_H,COL_W,22+(end-start)*ROW_H);
+  }
+
+  const fy=H-FOOTER_H;
+  ctx.fillStyle='#e8f5ec';
+  ctx.fillRect(0,fy,W,FOOTER_H);
+  ctx.strokeStyle='#c8dece';
+  ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+  ctx.fillStyle='#5a7060';
+  ctx.font='11px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('Quiniela Peña · Jornada '+jnum+' · '+dateStr,W/2,fy+18);
+
+  ctx.textAlign='left';
+  downloadCanvas(canvas,`quiniela-jornada${jnum}-${dateStr.replace(/\//g,'-')}.png`);
 }
 
 function exportExcel(){
   const XL=window.XLSX;
   if(!XL){showToast('Error: librería no cargada',3000);return;}
-  db=loadDb();
   const season=getSeason();
   const wb=XL.utils.book_new();
   const pad=n=>n.toString().padStart(2,'0');

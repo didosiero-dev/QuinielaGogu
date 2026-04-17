@@ -1079,62 +1079,156 @@ function openExportModal(mode){
   $('modal-export').classList.add('open');
 }
 
-function exportImage(){
-  const season=getSeason();
+function buildImageHtml(mode, season){
   const pad=n=>n.toString().padStart(2,'0');
   const now=new Date();
   const dateStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();
 
-  // Build a clean HTML table to screenshot
-  let html='';
-  if(exportMode==='clas'){
+  // Shared styles
+  const W=720; // px width — good for WhatsApp
+  const BG='#FFFFFF';
+  const HEADER_BG='#1a6b2e';
+  const ROW_EVEN='#F0F7F1';
+  const ROW_ODD='#FFFFFF';
+  const BORDER='#C8E6CC';
+  const TEXT='#1A2520';
+  const MUTED='#5A7060';
+  const GOLD='#B8860B'; const SILVER='#666'; const BRONZE='#8B4513';
+  const GREEN='#1a6b2e';
+
+  function medalColor(i){ return i===0?GOLD:i===1?SILVER:i===2?BRONZE:MUTED; }
+  function medalSymbol(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':''; }
+
+  // ── CLASIFICACIÓN en 3 columnas ──
+  if(mode==='clas'){
     const standings=computeStandings(season);
     const last=lastJornada(season);
-    html=`<div style="background:#0D0E14;padding:24px;font-family:-apple-system,sans-serif;min-width:340px;max-width:500px">
-      <div style="color:#8A8FA8;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">${season.name}</div>
-      <div style="color:#fff;font-size:22px;font-weight:700;margin-bottom:4px">Clasificación General</div>
-      <div style="color:#8A8FA8;font-size:12px;margin-bottom:16px">${last?(last.imported?`Hasta jornada ${last.num}`:` Tras jornada ${last.num}`):''}  · ${dateStr}</div>
-      ${standings.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${i<3?'#1E202C':'#16171F'};border-radius:10px;margin-bottom:5px">
-        <div style="width:24px;text-align:center;font-weight:700;color:${i===0?'#22C55E':i===1?'#94A3B8':i===2?'#B48246':'#484D65'};font-size:13px">${i+1}</div>
-        <div style="flex:1;color:#fff;font-size:14px;font-weight:600">${p.name}</div>
-        <div style="color:#fff;font-size:16px;font-weight:700">${p.aciertos}</div>
-      </div>`).join('')}
-      <div style="margin-top:12px;text-align:center;color:#484D65;font-size:10px">Quiniela Peña · ${dateStr}</div>
-    </div>`;
-  } else {
-    const j=(season.jornadas||[]).find(j=>j.num===exportMode);
-    if(!j) return;
-    const sorted=j.results.filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
-    html=`<div style="background:#0D0E14;padding:24px;font-family:-apple-system,sans-serif;min-width:340px;max-width:500px">
-      <div style="color:#8A8FA8;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">${season.name}</div>
-      <div style="color:#fff;font-size:22px;font-weight:700;margin-bottom:4px">Jornada ${exportMode}</div>
-      <div style="color:#8A8FA8;font-size:12px;margin-bottom:16px">${dateStr}</div>
-      ${sorted.map((r,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#16171F;border-radius:10px;margin-bottom:5px">
-        <div style="width:24px;text-align:center;font-weight:700;color:#484D65;font-size:13px">${i+1}</div>
-        <div style="flex:1;color:#fff;font-size:14px;font-weight:600">${getName(season,r.playerId)}</div>
-        ${r.prize>0?`<div style="font-size:11px;font-weight:600;color:#F59E0B;background:rgba(245,158,11,.15);border-radius:6px;padding:2px 6px;margin-right:4px">${fmt(r.prize)}</div>`:''}
-        <div style="color:#fff;font-size:16px;font-weight:700">${r.aciertos}</div>
-      </div>`).join('')}
-      <div style="margin-top:12px;text-align:center;color:#484D65;font-size:10px">Quiniela Peña · ${dateStr}</div>
+    const subtitle=last?(last.imported?`Hasta jornada ${last.num}`:`Tras jornada ${last.num}`):'Inicio de temporada';
+
+    // Split into 3 columns of roughly equal size
+    const total=standings.length;
+    const col1end=Math.ceil(total/3);
+    const col2end=Math.ceil(total*2/3);
+    const cols=[standings.slice(0,col1end), standings.slice(col1end,col2end), standings.slice(col2end)];
+
+    // Build each column as an HTML table
+    function buildCol(players, startPos){
+      return players.map((p,i)=>{
+        const pos=startPos+i;
+        const bg=i%2===0?ROW_EVEN:ROW_ODD;
+        const medal=medalSymbol(pos);
+        const posColor=medalColor(pos);
+        const bold=pos<3?'font-weight:700':'font-weight:400';
+        return `<tr style="background:${bg}">
+          <td style="padding:5px 4px 5px 8px;font-size:13px;font-weight:700;color:${posColor};width:28px;text-align:right">${medal||pos+1}</td>
+          <td style="padding:5px 4px;font-size:12px;${bold};color:${TEXT};max-width:130px;overflow:hidden;white-space:nowrap">${p.name}</td>
+          <td style="padding:5px 8px 5px 4px;font-size:13px;font-weight:700;color:${GREEN};text-align:right;width:30px">${p.aciertos}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    const tableStyle=`border-collapse:collapse;width:100%;font-family:Arial,sans-serif`;
+    const thStyle=`background:${HEADER_BG};color:#fff;font-size:11px;padding:6px 8px;text-align:left;font-weight:600;letter-spacing:.03em`;
+
+    return `<div style="background:${BG};width:${W}px;font-family:Arial,sans-serif;padding:0;border-radius:8px;overflow:hidden;border:1px solid ${BORDER}">
+      <div style="background:${HEADER_BG};padding:14px 20px 12px">
+        <div style="color:rgba(255,255,255,.7);font-size:11px;letter-spacing:.08em;text-transform:uppercase">${season.name} · Quiniela Peña</div>
+        <div style="color:#fff;font-size:20px;font-weight:700;margin-top:3px">Clasificación General</div>
+        <div style="color:rgba(255,255,255,.75);font-size:12px;margin-top:3px">${subtitle} · ${dateStr}</div>
+      </div>
+      <div style="display:flex;gap:0;padding:12px;gap:10px;align-items:flex-start">
+        ${cols.map((col,ci)=>{
+          const start=ci===0?0:ci===1?col1end:col2end;
+          return `<div style="flex:1;border:1px solid ${BORDER};border-radius:6px;overflow:hidden">
+            <table style="${tableStyle}">
+              <thead><tr>
+                <th style="${thStyle};width:28px">#</th>
+                <th style="${thStyle}">Nombre</th>
+                <th style="${thStyle};text-align:right;width:30px">✓</th>
+              </tr></thead>
+              <tbody>${buildCol(col,start)}</tbody>
+            </table>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;padding:6px;font-size:10px;color:${MUTED};border-top:1px solid ${BORDER}">Quiniela Peña · ${dateStr}</div>
     </div>`;
   }
 
+  // ── JORNADA en 2 columnas ──
+  const j=(season.jornadas||[]).find(j=>j.num===mode);
+  if(!j) return '';
+  const sorted=j.results.filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
+  const half=Math.ceil(sorted.length/2);
+  const cols2=[sorted.slice(0,half), sorted.slice(half)];
+
+  function buildJornCol(results, startPos){
+    return results.map((r,i)=>{
+      const pos=startPos+i;
+      const bg=i%2===0?ROW_EVEN:ROW_ODD;
+      const name=getName(season,r.playerId);
+      const prizeHtml=r.prize>0?`<span style="font-size:10px;color:#8B6914;background:#FEF9C3;border-radius:4px;padding:1px 5px;margin-left:3px">€${r.prize}</span>`:'';
+      return `<tr style="background:${bg}">
+        <td style="padding:5px 4px 5px 8px;font-size:12px;font-weight:600;color:${MUTED};width:24px;text-align:right">${pos+1}</td>
+        <td style="padding:5px 4px;font-size:12px;color:${TEXT};white-space:nowrap">${name}${prizeHtml}</td>
+        <td style="padding:5px 8px 5px 4px;font-size:13px;font-weight:700;color:${GREEN};text-align:right;width:26px">${r.aciertos}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const tableStyle=`border-collapse:collapse;width:100%;font-family:Arial,sans-serif`;
+  const thStyle=`background:${HEADER_BG};color:#fff;font-size:11px;padding:6px 8px;text-align:left;font-weight:600`;
+
+  return `<div style="background:${BG};width:${W}px;font-family:Arial,sans-serif;border-radius:8px;overflow:hidden;border:1px solid ${BORDER}">
+    <div style="background:${HEADER_BG};padding:14px 20px 12px">
+      <div style="color:rgba(255,255,255,.7);font-size:11px;letter-spacing:.08em;text-transform:uppercase">${season.name} · Quiniela Peña</div>
+      <div style="color:#fff;font-size:20px;font-weight:700;margin-top:3px">Jornada ${mode}</div>
+      <div style="color:rgba(255,255,255,.75);font-size:12px;margin-top:3px">${sorted.length} jugadores con aciertos · ${dateStr}</div>
+    </div>
+    <div style="display:flex;gap:10px;padding:12px;align-items:flex-start">
+      ${cols2.map((col,ci)=>{
+        const start=ci===0?0:half;
+        return `<div style="flex:1;border:1px solid ${BORDER};border-radius:6px;overflow:hidden">
+          <table style="${tableStyle}">
+            <thead><tr>
+              <th style="${thStyle};width:24px">#</th>
+              <th style="${thStyle}">Nombre</th>
+              <th style="${thStyle};text-align:right;width:26px">✓</th>
+            </tr></thead>
+            <tbody>${buildJornCol(col,start)}</tbody>
+          </table>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="text-align:center;padding:6px;font-size:10px;color:${MUTED};border-top:1px solid ${BORDER}">Quiniela Peña · ${dateStr}</div>
+  </div>`;
+}
+
+function exportImage(){
+  const season=getSeason();
+  const pad=n=>n.toString().padStart(2,'0');
+  const now=new Date();
+
+  const imgHtml=buildImageHtml(exportMode, season);
+  if(!imgHtml) return;
+
   const container=document.createElement('div');
-  container.style.cssText='position:fixed;left:-9999px;top:0';
-  container.innerHTML=html;
+  container.style.cssText='position:fixed;left:-9999px;top:0;width:720px';
+  container.innerHTML=imgHtml;
   document.body.appendChild(container);
 
-  html2canvas(container.firstChild,{backgroundColor:'#0D0E14',scale:2}).then(canvas=>{
+  html2canvas(container.firstChild,{backgroundColor:'#FFFFFF',scale:2,width:720,useCORS:true}).then(canvas=>{
     document.body.removeChild(container);
     canvas.toBlob(blob=>{
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
-      a.href=url; a.download=`quiniela-${exportMode==='clas'?'clasificacion':'jornada-'+exportMode}-${new Date().toISOString().slice(0,10)}.png`;
+      a.href=url;
+      a.download=`quiniela-${exportMode==='clas'?'clasificacion':'jornada-'+exportMode}-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}.png`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       $('modal-export').classList.remove('open');
       showToast('✓ Imagen exportada');
-    });
+    },'image/png');
   });
 }
 

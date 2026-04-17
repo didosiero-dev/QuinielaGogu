@@ -520,11 +520,12 @@ function computeStandings(season){
     });
   }
 
-  // Sumar jornadas normales (posteriores a la importación)
+  // Sumar todas las jornadas registradas manualmente
+  // Si hay datos importados, sólo sumar jornadas posteriores al punto de importación
   const fromRound=(season.imported&&season.imported.upToRound)||0;
   (season.jornadas||[]).filter(j=>j.num>fromRound).forEach(j=>{
     (j.results||[]).forEach(r=>{
-      if(map[r.playerId]) map[r.playerId].aciertos+=r.aciertos;
+      if(map[r.playerId]!==undefined) map[r.playerId].aciertos+=r.aciertos;
     });
   });
 
@@ -1205,6 +1206,8 @@ function buildImageHtml(mode, season){
 }
 
 function exportImage(){
+  // Always reload from localStorage to ensure latest saved data
+  db=loadDb();
   const season=getSeason();
   const pad=n=>n.toString().padStart(2,'0');
   const now=new Date();
@@ -1235,6 +1238,7 @@ function exportImage(){
 function exportExcel(){
   const XL=window.XLSX;
   if(!XL){showToast('Error: librería no cargada',3000);return;}
+  db=loadDb();
   const season=getSeason();
   const wb=XL.utils.book_new();
   const pad=n=>n.toString().padStart(2,'0');

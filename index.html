@@ -206,6 +206,31 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 .apikey-card{margin:0 16px 16px;background:var(--s3);border-radius:14px;padding:16px}
 .apikey-card p{font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:12px}
 
+/* ══ PREMIOS VIEW ══ */
+.premios-header{background:var(--bg);padding:10px 16px 8px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.premios-tabs{display:flex;gap:6px;padding:0 16px 10px;flex-shrink:0}
+.premio-tab{flex:1;padding:8px 4px;border:none;border-radius:10px;background:var(--s2);font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;text-align:center}
+.premio-tab.on{background:var(--amber);color:#0D0E14;font-weight:700}
+.premio-tab:active{opacity:.7}
+.premios-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:20px}
+.premios-scroll::-webkit-scrollbar{display:none}
+.premio-card{background:var(--s2);border-radius:14px;margin:0 16px 8px;overflow:hidden}
+.premio-card-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--bd)}
+.premio-card-head .pch-icon{width:38px;height:38px;border-radius:11px;background:var(--amber-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.premio-card-head .pch-info{flex:1}
+.premio-card-head .pch-title{font-size:14px;font-weight:600;color:var(--t1)}
+.premio-card-head .pch-sub{font-size:11px;color:var(--t2);margin-top:2px}
+.premio-card-head .pch-total{font-size:16px;font-weight:700;color:var(--amber);white-space:nowrap}
+.premio-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--bd)}
+.premio-row:last-child{border-bottom:none}
+.premio-row .pr-name{flex:1;font-size:13px;color:var(--t1)}
+.premio-row .pr-jorn{font-size:11px;color:var(--t2)}
+.premio-row .pr-amt{font-size:14px;font-weight:700;color:var(--amber);white-space:nowrap}
+.total-banner{margin:0 16px 12px;background:var(--amber-dim);border-radius:14px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(245,158,11,.3)}
+.total-banner .tb-lbl{font-size:11px;color:var(--amber);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.total-banner .tb-val{font-size:26px;font-weight:700;color:var(--amber);letter-spacing:-.5px}
+.empty-premios{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:4rem 2rem;color:var(--t2);font-size:14px;text-align:center}
+
 /* ══ SEASON SELECTOR ══ */
 .season-chip{display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:5px 12px;cursor:pointer}
 .season-chip span{font-size:13px;font-weight:600;color:var(--t1)}
@@ -357,14 +382,34 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
     </div>
   </div>
 
+    <!-- ══ PREMIOS ══ -->
+    <div class="view" id="v-premios">
+      <div class="premios-header">
+        <div style="font-size:22px;font-weight:700;color:var(--t1);letter-spacing:-.5px">Premios</div>
+        <button class="icon-btn" id="premios-export-btn" title="Exportar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+      <div class="premios-tabs">
+        <button class="premio-tab on" data-pt="jornada">Por jornada</button>
+        <button class="premio-tab" data-pt="jugador">Por jugador</button>
+        <button class="premio-tab" data-pt="total">Resumen</button>
+      </div>
+      <div class="premios-scroll" id="premios-list"></div>
+    </div>
+
   <div class="tabbar">
     <button class="tab on" id="t0">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      <span>Clasificación</span>
+      <span>Clasif.</span>
     </button>
     <button class="tab" id="t1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Jornadas</span>
+    </button>
+    <button class="tab" id="t3-premios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+      <span>Premios</span>
     </button>
     <button class="tab" id="t2">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -1455,12 +1500,16 @@ function updateBackupLabel(){
 let currentView='clas';
 
 function sv(v){
-  ['clas','jorn','detail','set'].forEach(id=>$('v-'+id).classList.toggle('active',id===v));
-  ['t0','t1','t2'].forEach((tid,i)=>$(tid).classList.toggle('on',i===['clas','jorn','set'].indexOf(v)));
+  ['clas','jorn','detail','set','premios'].forEach(id=>$('v-'+id).classList.toggle('active',id===v));
+  $('t0').classList.toggle('on',v==='clas');
+  $('t1').classList.toggle('on',v==='jorn');
+  $('t3-premios').classList.toggle('on',v==='premios');
+  $('t2').classList.toggle('on',v==='set');
   currentView=v;
   if(v==='clas'){$('sb-title').textContent='Quiniela Peña';}
   else if(v==='jorn'){$('sb-title').textContent='Jornadas';}
   else if(v==='set'){$('sb-title').textContent='Ajustes';}
+  else if(v==='premios'){$('sb-title').textContent='Premios';}
 }
 
 function renderAll(){
@@ -1468,6 +1517,296 @@ function renderAll(){
   renderClas();
   renderJornadas();
   renderSettings();
+  renderPremios();
+}
+
+/* ══════════════════════════════════════════════
+   PREMIOS
+══════════════════════════════════════════════ */
+let premiosTab = 'jornada';
+
+function computePremios(season){
+  if(!season) return {byJornada:[], byJugador:[], total:0};
+  const jornadas = (season.jornadas||[]).filter(j=>j.results.some(r=>r.prize>0)).sort((a,b)=>a.num-b.num);
+  const byJornada = jornadas.map(j=>{
+    const winners = j.results.filter(r=>r.prize>0).sort((a,b)=>b.prize-a.prize);
+    const total = winners.reduce((s,r)=>s+r.prize,0);
+    return {num:j.num, date:j.date, winners, total};
+  });
+
+  // Agrupar por jugador
+  const jugMap = {};
+  season.players.forEach(p=>{ jugMap[p.id]={id:p.id,name:p.name,premios:[],total:0}; });
+  jornadas.forEach(j=>{
+    j.results.filter(r=>r.prize>0).forEach(r=>{
+      if(jugMap[r.playerId]){
+        jugMap[r.playerId].premios.push({jnum:j.num,prize:r.prize});
+        jugMap[r.playerId].total+=r.prize;
+      }
+    });
+  });
+  const byJugador = Object.values(jugMap).filter(j=>j.total>0).sort((a,b)=>b.total-a.total);
+  const total = byJugador.reduce((s,j)=>s+j.total,0);
+  return {byJornada, byJugador, total};
+}
+
+function renderPremios(){
+  const season=getSeason();
+  const pl=$('premios-list');
+  if(!pl) return;
+  if(!season){pl.innerHTML='<div class="empty-premios">Sin temporada activa</div>';return;}
+
+  const {byJornada, byJugador, total} = computePremios(season);
+
+  if(!total){
+    pl.innerHTML='<div class="empty-premios">🏆<br>No hay premios registrados<br><span style="font-size:12px;color:var(--t3)">Los premios se añaden al introducir los aciertos de cada jornada</span></div>';
+    return;
+  }
+
+  const pad=n=>n.toString().padStart(2,'0');
+
+  if(premiosTab==='jornada'){
+    if(!byJornada.length){pl.innerHTML='<div class="empty-premios">Sin jornadas con premios</div>';return;}
+    pl.innerHTML=`<div style="height:8px"></div>`+byJornada.map(j=>{
+      const d=new Date(j.date);
+      const ds=pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+      return `<div class="premio-card">
+        <div class="premio-card-head">
+          <div class="pch-icon">🗓</div>
+          <div class="pch-info">
+            <div class="pch-title">Jornada ${j.num}</div>
+            <div class="pch-sub">${ds} · ${j.winners.length} premio${j.winners.length!==1?'s':''}</div>
+          </div>
+          <div class="pch-total">${fmt(j.total)}</div>
+        </div>
+        ${j.winners.map(r=>{
+          const name=getName(season,r.playerId);
+          return `<div class="premio-row">
+            <div class="pr-name">${name}</div>
+            <div class="pr-amt">${fmt(r.prize)}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('')+`<div style="height:8px"></div>`;
+
+  } else if(premiosTab==='jugador'){
+    if(!byJugador.length){pl.innerHTML='<div class="empty-premios">Sin jugadores con premios</div>';return;}
+    pl.innerHTML=`<div style="height:8px"></div>`+byJugador.map((j,i)=>`
+      <div class="premio-card">
+        <div class="premio-card-head">
+          <div class="pch-icon" style="background:rgba(61,133,247,.15);font-size:14px;font-weight:700;color:var(--blue)">${i+1}</div>
+          <div class="pch-info">
+            <div class="pch-title">${j.name}</div>
+            <div class="pch-sub">${j.premios.length} premio${j.premios.length!==1?'s':''} · jornadas: ${j.premios.map(p=>'J'+p.jnum).join(', ')}</div>
+          </div>
+          <div class="pch-total">${fmt(j.total)}</div>
+        </div>
+        ${j.premios.map(p=>`<div class="premio-row">
+          <div class="pr-name">Jornada ${p.jnum}</div>
+          <div class="pr-amt">${fmt(p.prize)}</div>
+        </div>`).join('')}
+      </div>`).join('')+`<div style="height:8px"></div>`;
+
+  } else { // total/resumen
+    pl.innerHTML=`
+      <div style="height:8px"></div>
+      <div class="total-banner">
+        <div>
+          <div class="tb-lbl">Total repartido</div>
+          <div class="tb-val">${fmt(total)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="tb-lbl">Jornadas premiadas</div>
+          <div style="font-size:20px;font-weight:700;color:var(--amber)">${byJornada.length}</div>
+        </div>
+      </div>
+      <div class="slbl" style="padding-top:4px">Ranking de premios</div>
+      ${byJugador.map((j,i)=>`
+        <div class="premio-card" style="margin-bottom:6px">
+          <div class="premio-card-head" style="border-bottom:none">
+            <div class="pch-icon" style="background:rgba(61,133,247,.15);font-size:13px;font-weight:700;color:var(--blue)">${i+1}</div>
+            <div class="pch-info">
+              <div class="pch-title">${j.name}</div>
+              <div class="pch-sub">${j.premios.length} vece${j.premios.length!==1?'s':''}</div>
+            </div>
+            <div>
+              <div class="pch-total">${fmt(j.total)}</div>
+              <div style="font-size:10px;color:var(--t3);text-align:right">${total>0?Math.round(j.total/total*100):0}%</div>
+            </div>
+          </div>
+          <div style="padding:4px 14px 10px">
+            <div style="height:4px;background:var(--s3);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${total>0?Math.round(j.total/byJugador[0].total*100):0}%;background:var(--amber);border-radius:2px"></div>
+            </div>
+          </div>
+        </div>`).join('')}
+      <div style="height:8px"></div>`;
+  }
+}
+
+function exportPremiosImage(){
+  const season=getSeason();
+  if(!season){showToast('Sin temporada activa',2000);return;}
+  const {byJornada,byJugador,total}=computePremios(season);
+  if(!total){showToast('No hay premios que exportar',2000);return;}
+
+  const pad=n=>n.toString().padStart(2,'0');
+  const now=new Date();
+  const dateStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();
+
+  // Canvas: resumen visual — ranking de jugadores por premio
+  const ROW_H=28;
+  const HEADER_H=80;
+  const FOOTER_H=28;
+  const W=520;
+  const n=byJugador.length;
+  const H=HEADER_H+(n+1)*ROW_H+20+FOOTER_H;
+
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  // BG
+  ctx.fillStyle='#FFFDF5';
+  ctx.fillRect(0,0,W,H);
+
+  // Header
+  ctx.fillStyle='#92400E';
+  ctx.fillRect(0,0,W,HEADER_H);
+  ctx.fillStyle='rgba(255,255,255,.65)';
+  ctx.font='500 11px Arial';
+  ctx.fillText((season.name+' · Quiniela Peña').toUpperCase(),20,22);
+  ctx.fillStyle='#fff';
+  ctx.font='bold 21px Arial';
+  ctx.fillText('Premios — Resumen',20,48);
+  ctx.fillStyle='rgba(255,255,255,.7)';
+  ctx.font='12px Arial';
+  ctx.fillText('Total repartido: '+fmt(total)+' · '+byJornada.length+' jornadas premiadas · '+dateStr,20,68);
+
+  // Table header
+  const TY=HEADER_H+10;
+  ctx.fillStyle='#B45309';
+  ctx.fillRect(20,TY,W-40,24);
+  ctx.fillStyle='#fff';
+  ctx.font='bold 10px Arial';
+  ctx.textAlign='left';
+  ctx.fillText('POS',28,TY+16);
+  ctx.fillText('JUGADOR',60,TY+16);
+  ctx.textAlign='right';
+  ctx.fillText('VECES',W-120,TY+16);
+  ctx.fillText('TOTAL',W-24,TY+16);
+
+  byJugador.forEach((j,i)=>{
+    const ry=TY+24+i*ROW_H;
+    ctx.fillStyle=i%2===0?'#FFFDF5':'#FEF9EC';
+    ctx.fillRect(20,ry,W-40,ROW_H);
+
+    // pos
+    ctx.fillStyle=i===0?'#B8860B':i===1?'#777':i===2?'#8B4513':'#9CA3AF';
+    ctx.font=i<3?'bold 12px Arial':'11px Arial';
+    ctx.textAlign='right';
+    ctx.fillText(i+1,52,ry+ROW_H/2+4);
+
+    // name
+    ctx.fillStyle='#2d1f0a';
+    ctx.font=i<3?'bold 12px Arial':'12px Arial';
+    ctx.textAlign='left';
+    let name=j.name;
+    if(ctx.measureText(name).width>W-200){
+      while(name.length>0&&ctx.measureText(name+'…').width>W-200) name=name.slice(0,-1);
+      name+='…';
+    }
+    ctx.fillText(name,60,ry+ROW_H/2+4);
+
+    // bar
+    const barW=Math.round((j.total/byJugador[0].total)*(W-300));
+    ctx.fillStyle='rgba(245,158,11,.25)';
+    ctx.fillRect(60,ry+ROW_H-6,W-240,4);
+    ctx.fillStyle='#F59E0B';
+    ctx.fillRect(60,ry+ROW_H-6,barW,4);
+
+    // veces
+    ctx.fillStyle='#78716C';
+    ctx.font='11px Arial';
+    ctx.textAlign='right';
+    ctx.fillText(j.premios.length+'x',W-118,ry+ROW_H/2+4);
+
+    // total
+    ctx.fillStyle='#92400E';
+    ctx.font='bold 13px Arial';
+    ctx.textAlign='right';
+    ctx.fillText(fmt(j.total),W-22,ry+ROW_H/2+4);
+
+    // separator
+    ctx.strokeStyle='#FDE68A';
+    ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(20,ry+ROW_H); ctx.lineTo(W-20,ry+ROW_H); ctx.stroke();
+  });
+
+  // Border around table
+  ctx.strokeStyle='#FCD34D';
+  ctx.lineWidth=1;
+  ctx.strokeRect(20,TY,W-40,24+byJugador.length*ROW_H);
+
+  // Footer
+  const fy=H-FOOTER_H;
+  ctx.fillStyle='#FEF3C7';
+  ctx.fillRect(0,fy,W,FOOTER_H);
+  ctx.strokeStyle='#FCD34D'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+  ctx.fillStyle='#92400E'; ctx.font='11px Arial'; ctx.textAlign='center';
+  ctx.fillText('Quiniela Peña · '+dateStr,W/2,fy+18);
+  ctx.textAlign='left';
+
+  downloadCanvas(canvas,`quiniela-premios-${dateStr.replace(/\//g,'-')}.png`);
+}
+
+function exportPremiosExcel(){
+  const XL=window.XLSX;
+  if(!XL){showToast('Error: librería no cargada',3000);return;}
+  const season=getSeason();
+  if(!season){showToast('Sin temporada activa',2000);return;}
+  const {byJornada,byJugador,total}=computePremios(season);
+  if(!total){showToast('No hay premios que exportar',2000);return;}
+
+  const pad=n=>n.toString().padStart(2,'0');
+  const wb=XL.utils.book_new();
+
+  // Hoja 1: por jornada
+  const rowsJ=[];
+  byJornada.forEach(j=>{
+    j.winners.forEach(r=>{
+      rowsJ.push({'Jornada':j.num,'Jugador':getName(season,r.playerId),'Premio (€)':r.prize});
+    });
+  });
+  const ws1=XL.utils.json_to_sheet(rowsJ);
+  ws1['!cols']=[{wch:10},{wch:30},{wch:12}];
+  XL.utils.book_append_sheet(wb,ws1,'Por jornada');
+
+  // Hoja 2: por jugador
+  const rowsP=[];
+  byJugador.forEach((j,i)=>{
+    rowsP.push({'Pos':i+1,'Jugador':j.name,'Veces premiado':j.premios.length,'Total (€)':parseFloat(j.total.toFixed(2))});
+  });
+  const ws2=XL.utils.json_to_sheet(rowsP);
+  ws2['!cols']=[{wch:6},{wch:30},{wch:16},{wch:12}];
+  XL.utils.book_append_sheet(wb,ws2,'Por jugador');
+
+  // Hoja 3: resumen
+  const now=new Date();
+  const ws3=XL.utils.json_to_sheet([
+    {'Concepto':'Temporada','Valor':season.name},
+    {'Concepto':'Total repartido','Valor':parseFloat(total.toFixed(2))},
+    {'Concepto':'Jornadas con premio','Valor':byJornada.length},
+    {'Concepto':'Jugadores premiados','Valor':byJugador.length},
+    {'Concepto':'Premio medio por jornada','Valor':byJornada.length?parseFloat((total/byJornada.length).toFixed(2)):0},
+  ]);
+  ws3['!cols']=[{wch:28},{wch:20}];
+  XL.utils.book_append_sheet(wb,ws3,'Resumen');
+
+  const p=n=>n.toString().padStart(2,'0');
+  XL.writeFile(wb,`quiniela-premios-${now.getFullYear()}${p(now.getMonth()+1)}${p(now.getDate())}.xlsx`);
+  showToast('✓ Excel de premios exportado');
 }
 
 /* ══════════════════════════════════════════════
@@ -1475,7 +1814,26 @@ function renderAll(){
 ══════════════════════════════════════════════ */
 $('t0').onclick=()=>sv('clas');
 $('t1').onclick=()=>sv('jorn');
+$('t3-premios').onclick=()=>{sv('premios');renderPremios();};
 $('t2').onclick=()=>{sv('set');renderSettings();};
+
+// Premios sub-tabs
+document.querySelectorAll('.premio-tab').forEach(tab=>{
+  tab.onclick=()=>{
+    premiosTab=tab.dataset.pt;
+    document.querySelectorAll('.premio-tab').forEach(t=>t.classList.toggle('on',t===tab));
+    renderPremios();
+  };
+});
+
+// Premios export button
+$('premios-export-btn').onclick=()=>{
+  const mod=$('modal-export');
+  $('export-modal-title').textContent='Exportar premios';
+  $('export-modal-sub').textContent='Elige el formato';
+  exportMode='premios';
+  mod.classList.add('open');
+};
 
 $('season-chip').onclick=()=>{renderSeasonList();$('modal-season').classList.add('open');};
 $('create-season-btn').onclick=()=>createSeason($('new-season-input').value);
@@ -1502,8 +1860,8 @@ $('detail-edit-btn').onclick=()=>{if(currentDetailJnum)openEntryModal(currentDet
 $('detail-export-btn').onclick=()=>{if(currentDetailJnum)openExportModal(currentDetailJnum);};
 
 $('export-clas-btn').onclick=()=>openExportModal('clas');
-$('export-img-btn').onclick=exportImage;
-$('export-xls-btn').onclick=exportExcel;
+$('export-img-btn').onclick=()=>{ if(exportMode==='premios') exportPremiosImage(); else exportImage(); };
+$('export-xls-btn').onclick=()=>{ if(exportMode==='premios') exportPremiosExcel(); else exportExcel(); };
 
 $('add-player-btn').onclick=addPlayer;
 $('player-input').addEventListener('keydown',e=>{if(e.key==='Enter')addPlayer();});

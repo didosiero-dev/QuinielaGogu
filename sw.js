@@ -1,4 +1,4 @@
-const CACHE = 'quiniela-v1';
+const CACHE = 'quiniela-v5';
 const ASSETS = ['./', './index.html', './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'];

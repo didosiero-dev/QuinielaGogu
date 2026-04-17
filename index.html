@@ -306,7 +306,7 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
                 <div class="sr-label">Total de jornadas</div>
                 <div class="sr-sub">Número máximo de jornadas</div>
               </div>
-              <input class="finput" id="rounds-input" type="number" min="1" max="60" style="width:80px;padding:8px 12px;font-size:14px;text-align:center" placeholder="38">
+              <input class="finput" id="rounds-input" type="number" min="1" max="100" style="width:80px;padding:8px 12px;font-size:14px;text-align:center" placeholder="Nº">
             </div>
             <div class="set-row" style="padding:10px 16px">
               <button class="btn btn-primary" id="save-season-btn" style="flex:1;padding:10px">Guardar configuración</button>
@@ -379,9 +379,13 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
     <div class="mtitle">Cambiar temporada</div>
     <div class="msub">Selecciona o crea una temporada</div>
     <div id="season-list" style="padding:0 16px 8px"></div>
+    <div style="padding:0 16px 4px;font-size:12px;color:var(--t3)">Nueva temporada</div>
     <div style="padding:0 16px 8px;display:flex;gap:8px">
-      <input class="finput" id="new-season-input" placeholder="Nueva temporada (ej: 2025-26)" style="flex:1">
-      <button class="btn btn-primary btn-sm" id="create-season-btn">Crear</button>
+      <input class="finput" id="new-season-input" placeholder="Nombre (ej: 2025-26)" style="flex:1">
+    </div>
+    <div style="padding:0 16px 8px;display:flex;gap:8px;align-items:center">
+      <input class="finput" id="new-season-rounds" type="number" min="1" max="100" placeholder="Nº jornadas" style="flex:1;text-align:center">
+      <button class="btn btn-primary btn-sm" id="create-season-btn" style="white-space:nowrap">Crear temporada</button>
     </div>
   </div>
 </div>
@@ -578,14 +582,20 @@ function renderJornadas(){
     return;
   }
   // Progress bar
-  const totalRounds=season.rounds||38;
-  const doneRounds=(season.jornadas||[]).length + (season.imported?1:0);
+  const totalRounds=season.rounds||null;
   const importedUpTo=season.imported?season.imported.upToRound:0;
   const normalDone=(season.jornadas||[]).length;
   const totalDone=importedUpTo>0?importedUpTo+normalDone:normalDone;
-  const pct=Math.min(100,Math.round(totalDone/totalRounds*100));
-  $('jorn-progress-lbl').textContent=`Jornada ${totalDone} de ${totalRounds} · ${pct}% completado`;
-  $('jorn-progress-bar').style.width=pct+'%';
+  if(totalRounds){
+    const pct=Math.min(100,Math.round(totalDone/totalRounds*100));
+    $('jorn-progress-lbl').textContent=`Jornada ${totalDone} de ${totalRounds} · ${pct}% completado`;
+    $('jorn-progress-bar').style.width=pct+'%';
+    $('jorn-progress-bar-wrap').style.display='block';
+  } else {
+    $('jorn-progress-lbl').textContent=`${totalDone} jornada${totalDone!==1?'s':''} registrada${totalDone!==1?'s':''}`;
+    $('jorn-progress-bar').style.width='0%';
+    $('jorn-progress-bar-wrap').style.display='none';
+  }
 
   const js=(season.jornadas||[]).slice().sort((a,b)=>b.num-a.num);
   if(!js.length&&!season.imported){
@@ -672,8 +682,8 @@ function openEntryModal(jnum){
 
   $('entry-modal-title').textContent=`Jornada ${jnum}`;
   const _s=getSeason();
-  const _total=_s?(_s.rounds||38):38;
-  $('entry-modal-sub').textContent=`Jornada ${jnum} de ${_total} · introduce los aciertos`;
+  const _total=_s&&_s.rounds?_s.rounds:null;
+  $('entry-modal-sub').textContent=_total?`Jornada ${jnum} de ${_total} · introduce los aciertos`:`Jornada ${jnum} · introduce los aciertos`;
   $('entry-search').value='';
   renderEntryList('');
   $('modal-entry').classList.add('open');
@@ -763,12 +773,12 @@ function canAddJornada(){
   const season=getSeason();
   if(!season) return {ok:false,msg:'Crea una temporada primero'};
   if(!season.players.length) return {ok:false,msg:'Añade jugadores primero'};
-  const totalRounds=season.rounds||38;
+  if(!season.rounds) return {ok:true}; // sin límite definido, siempre se puede
+  const totalRounds=season.rounds;
   const importedUpTo=season.imported?season.imported.upToRound:0;
   const normalDone=(season.jornadas||[]).length;
   const totalDone=importedUpTo+normalDone;
   if(totalDone>=totalRounds){
-    // Allow override — ask for confirmation and extend rounds automatically
     return {ok:true,warn:true,msg:`La temporada tenía ${totalRounds} jornadas. ¿Añadir una jornada extra?`};
   }
   return {ok:true};
@@ -806,17 +816,20 @@ function selectSeason(id){
 
 function createSeason(name){
   if(!name.trim()){showToast('Introduce un nombre',2000);return;}
+  const roundsVal=parseInt(($('new-season-rounds')||{value:''}).value);
+  if(!roundsVal||roundsVal<1){showToast('Indica el número de jornadas',2200);return;}
   const id=Date.now();
-  db.seasons.push({id,name:name.trim(),rounds:38,players:[],jornadas:[],imported:null});
+  db.seasons.push({id,name:name.trim(),rounds:roundsVal,players:[],jornadas:[],imported:null});
   db.activeSeason=id;
   save();
   $('new-season-input').value='';
+  $('new-season-rounds').value='';
   renderSeasonSelector();
   renderSeasonList();
   renderSettings();
   renderClas(); renderJornadas();
   $('modal-season').classList.remove('open');
-  showToast(`✓ Temporada "${name}" creada`);
+  showToast(`✓ Temporada "${name.trim()}" · ${roundsVal} jornadas`);
 }
 
 /* ══════════════════════════════════════════════
@@ -825,7 +838,7 @@ function createSeason(name){
 function renderSettings(){
   const s=getSeason();
   $('season-input').value=s?s.name:'';
-  $('rounds-input').value=s?s.rounds:38;
+  $('rounds-input').value=s&&s.rounds?s.rounds:'';
 
   renderPlayersList();
   updateBackupLabel();
@@ -1299,7 +1312,7 @@ if('serviceWorker'in navigator){
 // Si no hay temporada, crear una por defecto
 if(!db.seasons.length){
   const id=Date.now();
-  db.seasons.push({id,name:'2024-25',rounds:38,players:[],jornadas:[],imported:null});
+  db.seasons.push({id,name:'2024-25',rounds:null,players:[],jornadas:[],imported:null});
   db.activeSeason=id;
   save();
 }

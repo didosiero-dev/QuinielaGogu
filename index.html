@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quiniela">
+<meta name="theme-color" content="#0D0E14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Quiniela Peña</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0D0E14; --s1:#16171F; --s2:#1E202C; --s3:#252736; --s4:#2E3147;
+  --t1:#FFFFFF; --t2:#8A8FA8; --t3:#484D65;
+  --bd:rgba(255,255,255,0.07);
+  --green:#16A34A; --green-dim:rgba(22,163,74,0.15);
+  --blue:#3D85F7; --blue-dim:rgba(61,133,247,0.15);
+  --amber:#F59E0B; --amber-dim:rgba(245,158,11,0.15);
+  --red:#EF4444; --red-dim:rgba(239,68,68,0.15);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;color-scheme:dark}
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+.sb{padding:calc(var(--safe-top)+10px) 22px 8px;display:flex;justify-content:space-between;align-items:center;background:var(--bg);flex-shrink:0}
+.sb-title{font-size:16px;font-weight:700;color:var(--t1);letter-spacing:-.3px}
+.sb-right{display:flex;gap:8px;align-items:center}
+.icon-btn{background:var(--s2);border:none;border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);flex-shrink:0}
+.icon-btn:active{opacity:.6}
+.icon-btn svg{width:17px;height:17px}
+.screen{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.view{display:none;flex-direction:column;flex:1;overflow:hidden}
+.view.active{display:flex}
+
+/* TABBAR */
+.tabbar{background:var(--s1);border-top:1px solid var(--bd);display:flex;padding:8px 0 calc(var(--safe-bot)+4px);flex-shrink:0}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px}
+.tab svg{width:22px;height:22px;color:var(--t3)}
+.tab span{font-size:10px;color:var(--t3);font-weight:500}
+.tab.on svg,.tab.on span{color:var(--green)}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--safe-bot)+80px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--s3);color:var(--t1);border:1px solid var(--bd);padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MODAL OVERLAY */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;flex-direction:column;justify-content:flex-end}
+.moverlay.open{display:flex}
+.msheet{background:var(--s2);border-radius:28px 28px 0 0;padding-bottom:calc(var(--safe-bot)+20px);max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--bd)}
+.mhandle{width:36px;height:4px;background:var(--s4);border-radius:2px;margin:14px auto 18px}
+.mtitle{font-size:18px;font-weight:700;color:var(--t1);padding:0 20px;margin-bottom:4px;letter-spacing:-.3px}
+.msub{font-size:13px;color:var(--t2);padding:0 20px;margin-bottom:18px}
+
+/* SCROLL AREAS */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* SECTION LABEL */
+.slbl{font-size:10px;font-weight:500;color:var(--t3);padding:14px 16px 8px;letter-spacing:.1em;text-transform:uppercase}
+
+/* CARD */
+.card{background:var(--s2);border-radius:16px;margin:0 16px;overflow:hidden}
+.card+.card{margin-top:10px}
+
+/* ROW */
+.row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bd)}
+.row:last-child{border-bottom:none}
+
+/* INPUT */
+.finput{width:100%;background:var(--s3);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:15px;color:var(--t1);outline:none;font-family:inherit}
+.finput:focus{border-color:var(--green)}
+.finput::placeholder{color:var(--t3)}
+
+/* BTN */
+.btn{border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;letter-spacing:-.1px}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--green);color:#fff}
+.btn-secondary{background:var(--s3);color:var(--t2)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px;width:auto}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
+.badge-blue{background:var(--blue-dim);color:var(--blue)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+
+/* ══ CLASIFICACIÓN ══ */
+.clas-header{background:var(--bg);padding:10px 16px 14px;flex-shrink:0}
+.clas-season{font-size:11px;color:var(--t3);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.clas-title{font-size:26px;font-weight:700;color:var(--t1);letter-spacing:-.5px;margin-top:3px}
+.clas-meta{font-size:12px;color:var(--t2);margin-top:4px}
+.clas-list{padding:0 16px;padding-bottom:calc(var(--safe-bot)+16px)}
+.clas-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-radius:14px;margin-bottom:6px}
+.clas-item.top1{background:linear-gradient(135deg,#1a2a14,#1a2d18);border:1px solid rgba(22,163,74,.3)}
+.clas-item.top2{background:var(--s2);border:1px solid rgba(148,163,184,.15)}
+.clas-item.top3{background:var(--s2);border:1px solid rgba(180,130,70,.15)}
+.clas-pos{width:26px;font-size:13px;font-weight:700;color:var(--t3);text-align:center;flex-shrink:0}
+.clas-pos.p1{color:#22C55E}
+.clas-pos.p2{color:#94A3B8}
+.clas-pos.p3{color:#B48246}
+.clas-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
+.clas-name{flex:1;font-size:14px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clas-pts{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.3px}
+.clas-pts-lbl{font-size:10px;color:var(--t3);text-align:right;margin-top:1px}
+
+/* ══ JORNADAS ══ */
+.jorn-header{background:var(--bg);padding:10px 16px 8px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.jorn-title{font-size:22px;font-weight:700;color:var(--t1);letter-spacing:-.5px}
+.jorn-list{padding:0 16px;padding-bottom:calc(var(--safe-bot)+16px)}
+.jorn-card{background:var(--s2);border-radius:16px;margin-bottom:10px;overflow:hidden;cursor:pointer}
+.jorn-card:active{opacity:.8}
+.jorn-card-head{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.jorn-num{width:42px;height:42px;border-radius:13px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--t1);flex-shrink:0}
+.jorn-info{flex:1}
+.jorn-name{font-size:15px;font-weight:600;color:var(--t1)}
+.jorn-meta{font-size:12px;color:var(--t2);margin-top:2px}
+.jorn-arrow{color:var(--t3)}
+
+/* ══ ENTRADA DE JORNADA ══ */
+.entry-header{background:var(--bg);padding:10px 16px 6px;flex-shrink:0}
+.entry-title{font-size:20px;font-weight:700;color:var(--t1);letter-spacing:-.3px}
+.entry-sub{font-size:12px;color:var(--t2);margin-top:3px}
+.search-bar{margin:8px 16px;background:var(--s2);border-radius:12px;display:flex;align-items:center;gap:8px;padding:0 12px;flex-shrink:0}
+.search-bar svg{width:16px;height:16px;color:var(--t3);flex-shrink:0}
+.search-bar input{flex:1;background:none;border:none;outline:none;padding:10px 0;font-size:14px;color:var(--t1);font-family:inherit}
+.search-bar input::placeholder{color:var(--t3)}
+.player-entry-list{padding:0 16px;padding-bottom:calc(var(--safe-bot)+80px)}
+.pe-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:14px;margin-bottom:6px}
+.pe-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#fff}
+.pe-name{flex:1;font-size:14px;font-weight:500;color:var(--t1);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pe-aciertos{display:flex;align-items:center;gap:6px}
+.num-btn{width:30px;height:30px;border-radius:8px;background:var(--s3);border:none;color:var(--t2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.num-btn:active{opacity:.6}
+.num-display{width:32px;text-align:center;font-size:16px;font-weight:700;color:var(--t1)}
+.num-display.has-val{color:var(--green)}
+.prize-inp{width:72px;background:var(--s3);border:1px solid transparent;border-radius:8px;padding:5px 8px;font-size:13px;color:var(--amber);font-weight:600;outline:none;font-family:inherit;text-align:right}
+.prize-inp:focus{border-color:var(--amber)}
+.prize-inp::placeholder{color:var(--t3)}
+.entry-fab{position:fixed;bottom:calc(var(--safe-bot)+70px);left:50%;transform:translateX(-50%);background:var(--green);color:#fff;border:none;border-radius:16px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer;z-index:10;box-shadow:0 4px 20px rgba(22,163,74,.4)}
+.entry-fab:active{opacity:.8}
+
+/* ══ AJUSTES ══ */
+.set-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:20px}
+.set-scroll::-webkit-scrollbar{display:none}
+.set-section{margin:0 16px 20px}
+.set-section-title{font-size:10px;font-weight:500;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.set-card{background:var(--s2);border-radius:16px;overflow:hidden}
+.set-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--bd)}
+.set-row:last-child{border-bottom:none}
+.set-row .sr-label{flex:1;font-size:14px;font-weight:500;color:var(--t1)}
+.set-row .sr-sub{font-size:12px;color:var(--t2);margin-top:2px}
+.player-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd)}
+.player-row:last-child{border-bottom:none}
+.player-row .pr-name{flex:1;font-size:14px;font-weight:500;color:var(--t1)}
+.del-btn{background:var(--red-dim);border:none;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red);flex-shrink:0}
+.del-btn svg{width:14px;height:14px}
+.backup-row{display:flex;gap:8px;padding:12px 16px}
+.bk-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:none}
+.bk-btn:active{opacity:.7}
+.bk-export{background:var(--green-dim);color:var(--green)}
+.bk-import{background:var(--blue-dim);color:var(--blue)}
+.bk-info{padding:0 16px 12px;font-size:11px;color:var(--t3)}
+#file-input{display:none}
+#photo-input{display:none}
+
+/* ══ DETALLE JORNADA ══ */
+.detail-header{background:var(--bg);padding:10px 16px 8px;flex-shrink:0;display:flex;align-items:center;gap:12px}
+.back-btn{background:var(--s2);border:none;border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t1);flex-shrink:0}
+.back-btn svg{width:18px;height:18px}
+.detail-title{font-size:20px;font-weight:700;color:var(--t1);letter-spacing:-.3px}
+.detail-list{padding:0 16px;padding-bottom:calc(var(--safe-bot)+16px)}
+.detail-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:13px;margin-bottom:5px}
+.detail-pos{width:22px;font-size:12px;font-weight:700;color:var(--t3);text-align:center;flex-shrink:0}
+.detail-name{flex:1;font-size:14px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-aciertos{font-size:16px;font-weight:700;color:var(--t1);min-width:24px;text-align:right}
+.detail-prize{font-size:12px;font-weight:600;color:var(--amber);background:var(--amber-dim);border-radius:6px;padding:2px 8px;margin-left:4px}
+
+/* ══ EXPORT MODAL CONTENT ══ */
+.export-preview{margin:0 16px 16px;background:var(--s3);border-radius:14px;padding:16px}
+.exp-row{display:flex;gap:10px;margin-bottom:10px}
+.exp-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 8px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:none}
+.exp-btn:active{opacity:.7}
+.exp-img{background:var(--blue-dim);color:var(--blue)}
+.exp-xls{background:var(--green-dim);color:var(--green)}
+
+/* ══ JORNADA IMPORTAR OCR ══ */
+.ocr-zone{margin:0 16px 16px;background:var(--s3);border:2px dashed var(--bd);border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer}
+.ocr-zone:active{opacity:.7}
+.ocr-zone svg{width:36px;height:36px;color:var(--t3);margin:0 auto 10px;display:block}
+.ocr-zone p{font-size:14px;color:var(--t2)}
+.ocr-zone span{font-size:12px;color:var(--t3)}
+.ocr-result{margin:0 16px;background:var(--s3);border-radius:14px;overflow:hidden;max-height:300px;overflow-y:auto}
+.ocr-ritem{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bd)}
+.ocr-ritem:last-child{border-bottom:none}
+.ocr-name{flex:1;font-size:13px;color:var(--t1)}
+.ocr-pts{font-size:14px;font-weight:700;color:var(--green)}
+
+/* ══ API KEY ══ */
+.apikey-card{margin:0 16px 16px;background:var(--s3);border-radius:14px;padding:16px}
+.apikey-card p{font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:12px}
+
+/* ══ SEASON SELECTOR ══ */
+.season-chip{display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:5px 12px;cursor:pointer}
+.season-chip span{font-size:13px;font-weight:600;color:var(--t1)}
+.season-chip svg{width:14px;height:14px;color:var(--t2)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sb">
+    <div class="sb-title" id="sb-title">Quiniela Peña</div>
+    <div class="sb-right">
+      <div class="season-chip" id="season-chip">
+        <span id="season-label">Temporada</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen">
+    <!-- ══ CLASIFICACIÓN ══ -->
+    <div class="view active" id="v-clas">
+      <div class="clas-header">
+        <div class="clas-season" id="clas-season-lbl"></div>
+        <div class="clas-title">Clasificación</div>
+        <div class="clas-meta" id="clas-meta"></div>
+      </div>
+      <div style="display:flex;gap:8px;padding:0 16px 10px;flex-shrink:0">
+        <button class="btn btn-sm" id="export-clas-btn" style="background:var(--blue-dim);color:var(--blue);flex:1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;margin-right:4px;vertical-align:middle"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar
+        </button>
+      </div>
+      <div class="scroll">
+        <div class="clas-list" id="clas-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ JORNADAS ══ -->
+    <div class="view" id="v-jorn">
+      <div class="jorn-header">
+        <div class="jorn-title">Jornadas</div>
+        <button class="btn btn-sm btn-primary" id="nueva-jornada-btn">+ Nueva</button>
+      </div>
+      <div class="scroll">
+        <div class="jorn-list" id="jorn-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ DETALLE JORNADA ══ -->
+    <div class="view" id="v-detail">
+      <div class="detail-header">
+        <button class="back-btn" id="detail-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="detail-title" id="detail-title"></div>
+        <div style="flex:1"></div>
+        <button class="icon-btn" id="detail-edit-btn" title="Editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="icon-btn" id="detail-export-btn" title="Exportar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+      <div class="scroll">
+        <div class="detail-list" id="detail-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ AJUSTES ══ -->
+    <div class="view" id="v-set">
+      <div class="view-header" style="background:var(--bg);padding:10px 16px 14px;flex-shrink:0">
+        <div style="font-size:10px;color:var(--t3);font-weight:500;letter-spacing:.1em;text-transform:uppercase">Configuración</div>
+        <div style="font-size:24px;font-weight:700;color:var(--t1);letter-spacing:-.5px;margin-top:4px">Ajustes</div>
+      </div>
+      <div class="set-scroll">
+        <div style="height:4px;background:var(--bg)"></div>
+
+        <!-- Temporada -->
+        <div class="set-section">
+          <div class="set-section-title">Temporada activa</div>
+          <div class="set-card">
+            <div class="set-row">
+              <div style="flex:1">
+                <div class="sr-label">Nombre de temporada</div>
+                <div class="sr-sub">Ej: 2024-25</div>
+              </div>
+              <input class="finput" id="season-input" style="width:120px;padding:8px 12px;font-size:14px" placeholder="2024-25">
+            </div>
+            <div class="set-row">
+              <div style="flex:1">
+                <div class="sr-label">Total de jornadas</div>
+                <div class="sr-sub">Número máximo de jornadas</div>
+              </div>
+              <input class="finput" id="rounds-input" type="number" min="1" max="60" style="width:80px;padding:8px 12px;font-size:14px;text-align:center" placeholder="38">
+            </div>
+            <div class="set-row" style="padding:10px 16px">
+              <button class="btn btn-primary" id="save-season-btn" style="flex:1;padding:10px">Guardar configuración</button>
+              <button class="btn btn-sm" id="new-season-btn" style="margin-left:8px;background:var(--amber-dim);color:var(--amber)">Nueva temporada</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jugadores -->
+        <div class="set-section">
+          <div class="set-section-title">Jugadores</div>
+          <div class="set-card" id="players-card">
+            <div class="set-row">
+              <input class="finput" id="player-input" placeholder="Nombre del jugador" style="flex:1;margin-right:8px">
+              <button class="btn btn-primary btn-sm" id="add-player-btn">Añadir</button>
+            </div>
+            <div id="players-list"></div>
+          </div>
+          <div style="margin-top:8px">
+            <button class="btn" id="ocr-import-btn" style="background:var(--amber-dim);color:var(--amber);width:100%;border-radius:14px;padding:12px;font-size:14px">
+              📷 Importar clasificación desde foto
+            </button>
+          </div>
+        </div>
+
+        <!-- API Key para OCR -->
+        <div class="set-section" id="apikey-section">
+          <div class="set-section-title">API Key (para importar desde foto)</div>
+          <div class="set-card">
+            <div class="set-row">
+              <input class="finput" id="apikey-input" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-size:13px">
+            </div>
+            <div class="set-row" style="padding:8px 16px">
+              <button class="btn btn-sm btn-primary" id="save-apikey-btn">Guardar API Key</button>
+              <span style="font-size:11px;color:var(--t3);margin-left:10px;flex:1">Se guarda solo en tu dispositivo</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup -->
+        <div class="set-section">
+          <div class="set-section-title">Copia de seguridad</div>
+          <div class="set-card">
+            <div class="backup-row">
+              <button class="bk-btn bk-export" id="backup-export-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar backup
+              </button>
+              <button class="bk-btn bk-import" id="backup-import-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Importar backup
+              </button>
+            </div>
+            <div class="bk-info">Último backup: <span id="last-backup-lbl">nunca</span></div>
+          </div>
+        </div>
+        <div style="height:20px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab on" id="t0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span>Clasificación</span>
+    </button>
+    <button class="tab" id="t1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Jornadas</span>
+    </button>
+    <button class="tab" id="t2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Ajustes</span>
+    </button>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="moverlay" id="modal-season">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">Cambiar temporada</div>
+    <div class="msub">Selecciona o crea una temporada</div>
+    <div id="season-list" style="padding:0 16px 8px"></div>
+    <div style="padding:0 16px 8px;display:flex;gap:8px">
+      <input class="finput" id="new-season-input" placeholder="Nueva temporada (ej: 2025-26)" style="flex:1">
+      <button class="btn btn-primary btn-sm" id="create-season-btn">Crear</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="modal-entry">
+  <div class="msheet" id="entry-sheet">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="entry-modal-title"></div>
+    <div class="msub" id="entry-modal-sub"></div>
+    <div class="search-bar" style="margin:0 16px 10px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="entry-search" placeholder="Buscar jugador…">
+    </div>
+    <div class="player-entry-list" id="entry-list"></div>
+    <button class="entry-fab" id="entry-save-btn">Guardar jornada</button>
+  </div>
+</div>
+
+<div class="moverlay" id="modal-export">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="export-modal-title">Exportar</div>
+    <div class="msub" id="export-modal-sub"></div>
+    <div class="exp-row" style="padding:0 16px 8px">
+      <button class="exp-btn exp-img" id="export-img-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Imagen PNG
+      </button>
+      <button class="exp-btn exp-xls" id="export-xls-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Excel
+      </button>
+    </div>
+    <div id="export-preview-area" style="padding:0 16px 8px"></div>
+  </div>
+</div>
+
+<div class="moverlay" id="modal-ocr">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">Importar desde foto</div>
+    <div class="msub">Sube una foto de la clasificación para extraer los datos automáticamente</div>
+    <div class="ocr-zone" id="ocr-zone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <p>Toca para subir una foto</p>
+      <span>Excel, captura de pantalla o foto legible</span>
+    </div>
+    <div id="ocr-result-area"></div>
+    <div style="padding:0 16px 8px;display:flex;gap:8px" id="ocr-actions" style="display:none">
+      <button class="btn btn-primary" id="ocr-confirm-btn" style="flex:1;display:none">Importar datos</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="file-input" accept=".json">
+<input type="file" id="photo-input" accept="image/*">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════
+   BASE DE DATOS
+   db.seasons = [{id, name, rounds, players:[{id,name}], jornadas:[{num,date,results:[{playerId,aciertos,prize}]}], imported:{upToRound,standings:[{playerId,aciertos}]}}]
+   db.activeSeason = id
+   db.meta = {lastBackup, apiKey}
+══════════════════════════════════════════════ */
+function loadDb(){
+  try{
+    const s=localStorage.getItem('quiniela_v1');
+    if(s){ const d=JSON.parse(s); if(!d.meta)d.meta={lastBackup:null,apiKey:''}; return d; }
+  }catch(e){}
+  return {seasons:[],activeSeason:null,meta:{lastBackup:null,apiKey:''}};
+}
+let db=loadDb();
+let uid=1000;
+if(db.seasons.length){
+  const allIds=db.seasons.flatMap(s=>[...s.players.map(p=>p.id)]);
+  if(allIds.length) uid=Math.max(...allIds)+1;
+}
+
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem('quiniela_v1',JSON.stringify(db))}catch(e){}}
+function fmt(n){return n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}
+function showToast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
+function getSeason(){return db.seasons.find(s=>s.id===db.activeSeason)||null}
+
+/* ── AVATAR COLOR ── */
+const COLORS=['#3D85F7','#16A34A','#A855F7','#F59E0B','#EF4444','#06B6D4','#EC4899','#84CC16','#F97316','#8B5CF6'];
+function avatarColor(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%COLORS.length;return COLORS[Math.abs(h)%COLORS.length]}
+function avatarInitials(name){const p=name.trim().split(/\s+/);return p.length>=2?p[0][0]+p[p.length-1][0]:name.slice(0,2).toUpperCase()}
+
+/* ══════════════════════════════════════════════
+   CLASIFICACIÓN GENERAL
+══════════════════════════════════════════════ */
+function computeStandings(season){
+  if(!season) return [];
+  const map={};
+  season.players.forEach(p=>{map[p.id]={id:p.id,name:p.name,aciertos:0};});
+
+  // Si hay datos importados, empezar desde ahí
+  if(season.imported&&season.imported.standings){
+    season.imported.standings.forEach(s=>{
+      if(map[s.playerId]) map[s.playerId].aciertos=s.aciertos;
+    });
+  }
+
+  // Sumar jornadas normales (posteriores a la importación)
+  const fromRound=(season.imported&&season.imported.upToRound)||0;
+  (season.jornadas||[]).filter(j=>j.num>fromRound).forEach(j=>{
+    (j.results||[]).forEach(r=>{
+      if(map[r.playerId]) map[r.playerId].aciertos+=r.aciertos;
+    });
+  });
+
+  return Object.values(map).sort((a,b)=>b.aciertos-a.aciertos||a.name.localeCompare(b.name,'es'));
+}
+
+function lastJornada(season){
+  if(!season) return null;
+  const js=(season.jornadas||[]);
+  if(!js.length){
+    if(season.imported) return {num:season.imported.upToRound,date:season.imported.date||null,imported:true};
+    return null;
+  }
+  return js.reduce((a,b)=>b.num>a.num?b:a);
+}
+
+function renderClas(){
+  const season=getSeason();
+  $('clas-season-lbl').textContent=season?season.name:'—';
+  if(!season||!season.players.length){
+    $('clas-list').innerHTML=`<div style="text-align:center;padding:4rem 2rem;color:var(--t2)"><div style="font-size:48px;margin-bottom:12px">⚽</div><div style="font-size:16px;font-weight:600">Sin jugadores</div><div style="font-size:13px;margin-top:6px">Ve a Ajustes para añadir jugadores</div></div>`;
+    $('clas-meta').textContent='';
+    return;
+  }
+  const standings=computeStandings(season);
+  const last=lastJornada(season);
+  const now=new Date();
+  const pad=n=>n.toString().padStart(2,'0');
+  const todayStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();
+  $('clas-meta').textContent=last?(last.imported?`Actualizada hasta jornada ${last.num} · ${todayStr}`:`Actualizada tras jornada ${last.num} · ${todayStr}`):`Actualizada · ${todayStr}`;
+
+  $('clas-list').innerHTML=standings.map((p,i)=>{
+    const pos=i+1;
+    const cls=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
+    const pcls=pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+    const color=avatarColor(p.name);
+    return `<div class="clas-item ${cls}">
+      <div class="clas-pos ${pcls}">${pos}</div>
+      <div class="clas-avatar" style="background:${color}">${avatarInitials(p.name)}</div>
+      <div class="clas-name">${p.name}</div>
+      <div style="text-align:right">
+        <div class="clas-pts">${p.aciertos}</div>
+        <div class="clas-pts-lbl">aciertos</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   JORNADAS
+══════════════════════════════════════════════ */
+function renderJornadas(){
+  const season=getSeason();
+  const jl=$('jorn-list');
+  if(!season){jl.innerHTML='';return;}
+  const js=(season.jornadas||[]).slice().sort((a,b)=>b.num-a.num);
+  if(!js.length&&!season.imported){
+    jl.innerHTML=`<div style="text-align:center;padding:3rem 2rem;color:var(--t2)"><div style="font-size:14px">No hay jornadas registradas</div><div style="font-size:12px;margin-top:6px;color:var(--t3)">Pulsa "Nueva" para añadir la primera</div></div>`;
+    return;
+  }
+  let html='';
+  if(season.imported){
+    html+=`<div class="jorn-card" style="cursor:default;opacity:.7">
+      <div class="jorn-card-head">
+        <div class="jorn-num" style="background:var(--amber-dim);color:var(--amber)">J1-${season.imported.upToRound}</div>
+        <div class="jorn-info">
+          <div class="jorn-name">Datos importados</div>
+          <div class="jorn-meta">Jornadas 1 a ${season.imported.upToRound} · Importado desde foto</div>
+        </div>
+        <span class="badge badge-amber">OCR</span>
+      </div>
+    </div>`;
+  }
+  js.forEach(j=>{
+    const played=j.results.filter(r=>r.aciertos>0).length;
+    const prizes=j.results.filter(r=>r.prize>0);
+    const pad=n=>n.toString().padStart(2,'0');
+    const d=new Date(j.date);
+    const dateStr=pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+    html+=`<div class="jorn-card" data-jnum="${j.num}">
+      <div class="jorn-card-head">
+        <div class="jorn-num">J${j.num}</div>
+        <div class="jorn-info">
+          <div class="jorn-name">Jornada ${j.num}</div>
+          <div class="jorn-meta">${dateStr} · ${played} jugadores · ${prizes.length>0?'🏆 '+prizes.length+' premios':'sin premios'}</div>
+        </div>
+        <svg class="jorn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>`;
+  });
+  jl.innerHTML=html;
+  jl.querySelectorAll('.jorn-card[data-jnum]').forEach(c=>c.onclick=()=>openDetail(parseInt(c.dataset.jnum)));
+}
+
+/* ══════════════════════════════════════════════
+   DETALLE JORNADA
+══════════════════════════════════════════════ */
+let currentDetailJnum=null;
+function openDetail(jnum){
+  const season=getSeason();
+  const j=(season.jornadas||[]).find(j=>j.num===jnum);
+  if(!j) return;
+  currentDetailJnum=jnum;
+  $('detail-title').textContent=`Jornada ${jnum}`;
+  const sorted=[...j.results].filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
+  $('detail-list').innerHTML=sorted.map((r,i)=>{
+    const name=getName(season,r.playerId);
+    const color=avatarColor(name);
+    return `<div class="detail-item">
+      <div class="detail-pos">${i+1}</div>
+      <div class="pe-avatar" style="background:${color};width:32px;height:32px;font-size:11px">${avatarInitials(name)}</div>
+      <div class="detail-name">${name}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="detail-aciertos">${r.aciertos}</div>
+        ${r.prize>0?`<div class="detail-prize">${fmt(r.prize)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  sv('detail');
+}
+
+function getName(season,playerId){return (season.players.find(p=>p.id===playerId)||{name:'?'}).name}
+
+/* ══════════════════════════════════════════════
+   MODAL ENTRADA DE JORNADA
+══════════════════════════════════════════════ */
+let entryData={}; // {playerId: {aciertos, prize}}
+let entryJnum=null;
+
+function openEntryModal(jnum){
+  const season=getSeason();
+  if(!season||!season.players.length){showToast('Añade jugadores primero',2500);return;}
+  entryJnum=jnum;
+  entryData={};
+  // Pre-cargar datos existentes si ya hay jornada
+  const existing=(season.jornadas||[]).find(j=>j.num===jnum);
+  if(existing){existing.results.forEach(r=>{entryData[r.playerId]={aciertos:r.aciertos,prize:r.prize||0};});}
+
+  $('entry-modal-title').textContent=`Jornada ${jnum}`;
+  $('entry-modal-sub').textContent=`Introduce los aciertos de cada jugador`;
+  $('entry-search').value='';
+  renderEntryList('');
+  $('modal-entry').classList.add('open');
+  setTimeout(()=>$('entry-search').focus(),300);
+}
+
+function renderEntryList(filter){
+  const season=getSeason();
+  const players=season.players.filter(p=>!filter||p.name.toLowerCase().includes(filter.toLowerCase()));
+  $('entry-list').innerHTML=players.map(p=>{
+    const d=entryData[p.id]||{aciertos:0,prize:0};
+    const color=avatarColor(p.name);
+    return `<div class="pe-item" data-pid="${p.id}">
+      <div class="pe-avatar" style="background:${color}">${avatarInitials(p.name)}</div>
+      <div class="pe-name">${p.name}</div>
+      <div class="pe-aciertos">
+        <button class="num-btn minus-btn" data-pid="${p.id}">−</button>
+        <div class="num-display ${d.aciertos>0?'has-val':''}" id="nd-${p.id}">${d.aciertos}</div>
+        <button class="num-btn plus-btn" data-pid="${p.id}">+</button>
+        <input class="prize-inp" id="prize-${p.id}" type="number" min="0" step="0.01" placeholder="€" value="${d.prize||''}">
+      </div>
+    </div>`;
+  }).join('');
+
+  $('entry-list').querySelectorAll('.minus-btn').forEach(b=>{
+    b.onclick=()=>{
+      const pid=parseInt(b.dataset.pid);
+      if(!entryData[pid]) entryData[pid]={aciertos:0,prize:0};
+      entryData[pid].aciertos=Math.max(0,entryData[pid].aciertos-1);
+      const nd=$('nd-'+pid);
+      nd.textContent=entryData[pid].aciertos;
+      nd.className='num-display'+(entryData[pid].aciertos>0?' has-val':'');
+    };
+  });
+  $('entry-list').querySelectorAll('.plus-btn').forEach(b=>{
+    b.onclick=()=>{
+      const pid=parseInt(b.dataset.pid);
+      if(!entryData[pid]) entryData[pid]={aciertos:0,prize:0};
+      entryData[pid].aciertos=Math.min(15,entryData[pid].aciertos+1);
+      const nd=$('nd-'+pid);
+      nd.textContent=entryData[pid].aciertos;
+      nd.className='num-display has-val';
+    };
+  });
+  $('entry-list').querySelectorAll('.prize-inp').forEach(inp=>{
+    inp.onchange=()=>{
+      const pid=parseInt(inp.id.replace('prize-',''));
+      if(!entryData[pid]) entryData[pid]={aciertos:0,prize:0};
+      entryData[pid].prize=parseFloat(inp.value)||0;
+    };
+  });
+}
+
+function saveEntry(){
+  const season=getSeason();
+  if(!season) return;
+  const results=season.players.map(p=>({
+    playerId:p.id,
+    aciertos:(entryData[p.id]||{aciertos:0}).aciertos,
+    prize:(entryData[p.id]||{prize:0}).prize||0
+  }));
+  if(!season.jornadas) season.jornadas=[];
+  const existing=season.jornadas.findIndex(j=>j.num===entryJnum);
+  const jornadaObj={num:entryJnum,date:new Date().toISOString(),results};
+  if(existing>=0) season.jornadas[existing]=jornadaObj;
+  else season.jornadas.push(jornadaObj);
+  save();
+  $('modal-entry').classList.remove('open');
+  renderClas(); renderJornadas();
+  showToast(`✓ Jornada ${entryJnum} guardada`);
+}
+
+/* ══════════════════════════════════════════════
+   GESTIÓN JORNADAS — nueva jornada
+══════════════════════════════════════════════ */
+function getNextJnum(){
+  const season=getSeason();
+  if(!season) return 1;
+  const existing=(season.jornadas||[]).map(j=>j.num);
+  const imported=season.imported?season.imported.upToRound:0;
+  let n=imported+1;
+  while(existing.includes(n)) n++;
+  return n;
+}
+
+/* ══════════════════════════════════════════════
+   TEMPORADAS
+══════════════════════════════════════════════ */
+function renderSeasonSelector(){
+  const s=getSeason();
+  $('season-label').textContent=s?s.name:'Sin temporada';
+  $('clas-season-lbl').textContent=s?s.name:'';
+}
+
+function renderSeasonList(){
+  $('season-list').innerHTML=db.seasons.map(s=>`
+    <div class="set-row" style="${s.id===db.activeSeason?'background:var(--green-dim)':''}">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--t1)">${s.name}</div>
+        <div style="font-size:12px;color:var(--t2)">${s.players.length} jugadores · ${(s.jornadas||[]).length} jornadas</div>
+      </div>
+      ${s.id===db.activeSeason?'<span class="badge badge-green">Activa</span>':
+        `<button class="btn btn-sm btn-secondary" onclick="selectSeason(${s.id})">Usar</button>`}
+    </div>`).join('');
+}
+
+function selectSeason(id){
+  db.activeSeason=id;
+  save();
+  renderSeasonSelector();
+  renderClas(); renderJornadas();
+  $('modal-season').classList.remove('open');
+  renderSettings();
+}
+
+function createSeason(name){
+  if(!name.trim()){showToast('Introduce un nombre',2000);return;}
+  const id=Date.now();
+  db.seasons.push({id,name:name.trim(),rounds:38,players:[],jornadas:[],imported:null});
+  db.activeSeason=id;
+  save();
+  $('new-season-input').value='';
+  renderSeasonSelector();
+  renderSeasonList();
+  renderSettings();
+  renderClas(); renderJornadas();
+  $('modal-season').classList.remove('open');
+  showToast(`✓ Temporada "${name}" creada`);
+}
+
+/* ══════════════════════════════════════════════
+   AJUSTES
+══════════════════════════════════════════════ */
+function renderSettings(){
+  const s=getSeason();
+  $('season-input').value=s?s.name:'';
+  $('rounds-input').value=s?s.rounds:38;
+  $('apikey-input').value=db.meta.apiKey||'';
+  renderPlayersList();
+  updateBackupLabel();
+}
+
+function renderPlayersList(){
+  const s=getSeason();
+  const pl=$('players-list');
+  if(!s){pl.innerHTML='<div style="padding:12px 16px;font-size:13px;color:var(--t3)">Crea una temporada primero.</div>';return;}
+  if(!s.players.length){pl.innerHTML='<div style="padding:12px 16px;font-size:13px;color:var(--t3)">Sin jugadores aún.</div>';return;}
+  pl.innerHTML=s.players.map(p=>`
+    <div class="player-row">
+      <div class="pe-avatar" style="background:${avatarColor(p.name)};width:30px;height:30px;font-size:11px">${avatarInitials(p.name)}</div>
+      <div class="pr-name">${p.name}</div>
+      <button class="del-btn" data-pid="${p.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      </button>
+    </div>`).join('');
+  pl.querySelectorAll('.del-btn').forEach(b=>b.onclick=()=>{
+    if(confirm('¿Eliminar jugador?')){
+      const s=getSeason();
+      s.players=s.players.filter(p=>p.id!==parseInt(b.dataset.pid));
+      save(); renderPlayersList(); renderClas();
+    }
+  });
+}
+
+function addPlayer(){
+  const s=getSeason();
+  if(!s){showToast('Crea una temporada primero',2500);return;}
+  const name=$('player-input').value.trim();
+  if(!name){showToast('Introduce un nombre',2000);return;}
+  if(s.players.find(p=>p.name.toLowerCase()===name.toLowerCase())){showToast('Ya existe ese jugador',2000);return;}
+  s.players.push({id:uid++,name});
+  $('player-input').value='';
+  save(); renderPlayersList(); renderClas();
+  showToast(`✓ ${name} añadido`);
+}
+
+/* ══════════════════════════════════════════════
+   OCR — IMPORTAR DESDE FOTO
+══════════════════════════════════════════════ */
+let ocrParsed=[];
+
+async function runOCR(file){
+  const apiKey=db.meta.apiKey;
+  if(!apiKey){showToast('Necesitas una API Key en Ajustes',3000);$('modal-ocr').classList.remove('open');sv('set');return;}
+  $('ocr-result-area').innerHTML=`<div style="padding:20px;text-align:center;color:var(--t2)">Analizando imagen…<br><small style="color:var(--t3)">Puede tardar unos segundos</small></div>`;
+  $('ocr-actions').style.display='none';
+
+  // Convert to base64
+  const base64=await new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+
+  const prompt=`Eres un extractor de datos de clasificaciones de quiniela. Analiza esta imagen que contiene una clasificación/tabla con jugadores y sus aciertos acumulados. 
+Extrae TODOS los nombres y sus puntuaciones. La tabla puede tener columnas como: posición, nombre, aciertos/puntos.
+Devuelve SOLO un JSON válido con este formato exacto, sin markdown, sin explicaciones:
+{"players":[{"name":"NOMBRE","aciertos":NUMBER},...],"upToRound":NUMBER_OR_NULL}
+Si no puedes determinar la jornada, pon null. Los nombres en mayúsculas si así aparecen. Extrae todos los jugadores que veas.`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-6',max_tokens:2000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:base64}},{type:'text',text:prompt}]}]})
+    });
+    const data=await resp.json();
+    if(data.error){showToast('Error API: '+data.error.message,4000);return;}
+    const text=data.content[0].text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(text);
+    ocrParsed=parsed.players||[];
+    const upTo=parsed.upToRound;
+
+    if(!ocrParsed.length){$('ocr-result-area').innerHTML='<div style="padding:16px;color:var(--red)">No se detectaron jugadores en la imagen.</div>';return;}
+
+    $('ocr-result-area').innerHTML=`
+      <div style="padding:8px 16px 4px;font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">${ocrParsed.length} jugadores detectados${upTo?` · Hasta jornada ${upTo}`:''}</div>
+      <div class="ocr-result">${ocrParsed.map(p=>`<div class="ocr-ritem"><div class="ocr-name">${p.name}</div><div class="ocr-pts">${p.aciertos} ✓</div></div>`).join('')}</div>
+      ${upTo?`<div style="padding:8px 16px;font-size:12px;color:var(--amber)">Se importará como datos hasta jornada ${upTo}</div>`:'<div style="padding:8px 16px"><input class="finput" id="ocr-round-input" type="number" min="1" placeholder="¿Hasta qué jornada? (número)" style="font-size:14px"></div>'}
+      <div style="padding:8px 16px 4px;display:flex;gap:8px">
+        <button class="btn btn-primary" id="ocr-confirm-btn2" style="flex:1">Importar ${ocrParsed.length} jugadores</button>
+      </div>`;
+
+    $('ocr-confirm-btn2').onclick=()=>confirmOCR(upTo);
+  }catch(err){
+    $('ocr-result-area').innerHTML=`<div style="padding:16px;color:var(--red)">Error: ${err.message}</div>`;
+  }
+}
+
+function confirmOCR(upToRound){
+  const roundInput=$('ocr-round-input');
+  const round=upToRound||(roundInput?parseInt(roundInput.value):null);
+  if(!round||round<1){showToast('Indica hasta qué jornada',2500);return;}
+
+  const season=getSeason();
+  if(!season){showToast('Crea una temporada primero',2500);return;}
+
+  // Crear o actualizar jugadores en la temporada
+  ocrParsed.forEach(p=>{
+    let player=season.players.find(pl=>pl.name.toUpperCase()===p.name.toUpperCase()||pl.name.toLowerCase()===p.name.toLowerCase());
+    if(!player){player={id:uid++,name:p.name};season.players.push(player);}
+    p.resolvedId=player.id;
+  });
+
+  season.imported={
+    upToRound:round,
+    date:new Date().toISOString(),
+    standings:ocrParsed.map(p=>({playerId:p.resolvedId,aciertos:p.aciertos}))
+  };
+
+  save();
+  $('modal-ocr').classList.remove('open');
+  renderClas(); renderJornadas(); renderSettings();
+  showToast(`✓ ${ocrParsed.length} jugadores importados hasta jornada ${round}`);
+}
+
+/* ══════════════════════════════════════════════
+   EXPORTAR — IMAGEN + EXCEL
+══════════════════════════════════════════════ */
+let exportMode=null; // 'clas' | jnum
+
+function openExportModal(mode){
+  exportMode=mode;
+  if(mode==='clas'){
+    $('export-modal-title').textContent='Exportar clasificación';
+    $('export-modal-sub').textContent='Elige el formato de exportación';
+  } else {
+    $('export-modal-title').textContent=`Exportar Jornada ${mode}`;
+    $('export-modal-sub').textContent='Elige el formato de exportación';
+  }
+  $('modal-export').classList.add('open');
+}
+
+function exportImage(){
+  const season=getSeason();
+  const pad=n=>n.toString().padStart(2,'0');
+  const now=new Date();
+  const dateStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();
+
+  // Build a clean HTML table to screenshot
+  let html='';
+  if(exportMode==='clas'){
+    const standings=computeStandings(season);
+    const last=lastJornada(season);
+    html=`<div style="background:#0D0E14;padding:24px;font-family:-apple-system,sans-serif;min-width:340px;max-width:500px">
+      <div style="color:#8A8FA8;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">${season.name}</div>
+      <div style="color:#fff;font-size:22px;font-weight:700;margin-bottom:4px">Clasificación General</div>
+      <div style="color:#8A8FA8;font-size:12px;margin-bottom:16px">${last?(last.imported?`Hasta jornada ${last.num}`:` Tras jornada ${last.num}`):''}  · ${dateStr}</div>
+      ${standings.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${i<3?'#1E202C':'#16171F'};border-radius:10px;margin-bottom:5px">
+        <div style="width:24px;text-align:center;font-weight:700;color:${i===0?'#22C55E':i===1?'#94A3B8':i===2?'#B48246':'#484D65'};font-size:13px">${i+1}</div>
+        <div style="flex:1;color:#fff;font-size:14px;font-weight:600">${p.name}</div>
+        <div style="color:#fff;font-size:16px;font-weight:700">${p.aciertos}</div>
+      </div>`).join('')}
+      <div style="margin-top:12px;text-align:center;color:#484D65;font-size:10px">Quiniela Peña · ${dateStr}</div>
+    </div>`;
+  } else {
+    const j=(season.jornadas||[]).find(j=>j.num===exportMode);
+    if(!j) return;
+    const sorted=j.results.filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
+    html=`<div style="background:#0D0E14;padding:24px;font-family:-apple-system,sans-serif;min-width:340px;max-width:500px">
+      <div style="color:#8A8FA8;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">${season.name}</div>
+      <div style="color:#fff;font-size:22px;font-weight:700;margin-bottom:4px">Jornada ${exportMode}</div>
+      <div style="color:#8A8FA8;font-size:12px;margin-bottom:16px">${dateStr}</div>
+      ${sorted.map((r,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#16171F;border-radius:10px;margin-bottom:5px">
+        <div style="width:24px;text-align:center;font-weight:700;color:#484D65;font-size:13px">${i+1}</div>
+        <div style="flex:1;color:#fff;font-size:14px;font-weight:600">${getName(season,r.playerId)}</div>
+        ${r.prize>0?`<div style="font-size:11px;font-weight:600;color:#F59E0B;background:rgba(245,158,11,.15);border-radius:6px;padding:2px 6px;margin-right:4px">${fmt(r.prize)}</div>`:''}
+        <div style="color:#fff;font-size:16px;font-weight:700">${r.aciertos}</div>
+      </div>`).join('')}
+      <div style="margin-top:12px;text-align:center;color:#484D65;font-size:10px">Quiniela Peña · ${dateStr}</div>
+    </div>`;
+  }
+
+  const container=document.createElement('div');
+  container.style.cssText='position:fixed;left:-9999px;top:0';
+  container.innerHTML=html;
+  document.body.appendChild(container);
+
+  html2canvas(container.firstChild,{backgroundColor:'#0D0E14',scale:2}).then(canvas=>{
+    document.body.removeChild(container);
+    canvas.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=`quiniela-${exportMode==='clas'?'clasificacion':'jornada-'+exportMode}-${new Date().toISOString().slice(0,10)}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      $('modal-export').classList.remove('open');
+      showToast('✓ Imagen exportada');
+    });
+  });
+}
+
+function exportExcel(){
+  const XL=window.XLSX;
+  if(!XL){showToast('Error: librería no cargada',3000);return;}
+  const season=getSeason();
+  const wb=XL.utils.book_new();
+  const pad=n=>n.toString().padStart(2,'0');
+
+  if(exportMode==='clas'){
+    const standings=computeStandings(season);
+    const last=lastJornada(season);
+    const rows=standings.map((p,i)=>({'Pos':i+1,'Jugador':p.name,'Aciertos':p.aciertos}));
+    // Añadir fila info
+    const ws=XL.utils.json_to_sheet([{'Info':`Clasificación ${season.name} · ${last?'Tras jornada '+last.num:''}`,A:'',B:''}]);
+    XL.utils.sheet_add_json(ws,[{}],{skipHeader:true,origin:'A2'});
+    const ws2=XL.utils.json_to_sheet(rows);
+    ws2['!cols']=[{wch:6},{wch:28},{wch:10}];
+    XL.utils.book_append_sheet(wb,ws2,'Clasificación');
+
+    // Hoja con todas las jornadas
+    const jornadas=(season.jornadas||[]).sort((a,b)=>a.num-b.num);
+    if(jornadas.length){
+      const allRows=[];
+      jornadas.forEach(j=>{
+        j.results.filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos).forEach((r,i)=>{
+          allRows.push({'Jornada':j.num,'Pos':i+1,'Jugador':getName(season,r.playerId),'Aciertos':r.aciertos,'Premio':r.prize||''});
+        });
+      });
+      const ws3=XL.utils.json_to_sheet(allRows);
+      ws3['!cols']=[{wch:8},{wch:6},{wch:28},{wch:10},{wch:10}];
+      XL.utils.book_append_sheet(wb,ws3,'Todas las jornadas');
+    }
+  } else {
+    const j=(season.jornadas||[]).find(j=>j.num===exportMode);
+    if(!j) return;
+    const sorted=j.results.filter(r=>r.aciertos>0).sort((a,b)=>b.aciertos-a.aciertos||getName(season,a.playerId).localeCompare(getName(season,b.playerId),'es'));
+    const rows=sorted.map((r,i)=>({'Pos':i+1,'Jugador':getName(season,r.playerId),'Aciertos':r.aciertos,'Premio':r.prize||''}));
+    const ws=XL.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:6},{wch:28},{wch:10},{wch:10}];
+    XL.utils.book_append_sheet(wb,ws,`Jornada ${exportMode}`);
+  }
+
+  const now=new Date();
+  const fname=`quiniela-${exportMode==='clas'?'clasificacion':'jornada-'+exportMode}-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}.xlsx`;
+  XL.writeFile(wb,fname);
+  $('modal-export').classList.remove('open');
+  showToast('✓ Excel exportado');
+}
+
+/* ══════════════════════════════════════════════
+   BACKUP
+══════════════════════════════════════════════ */
+function exportBackup(){
+  const now=new Date();
+  const pad=n=>n.toString().padStart(2,'0');
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`quiniela-backup-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  db.meta.lastBackup=now.toISOString(); save(); updateBackupLabel();
+  showToast('✓ Backup exportado');
+}
+
+function importBackup(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      if(!parsed.seasons||!Array.isArray(parsed.seasons)) throw new Error();
+      if(!confirm('Esto reemplazará todos tus datos. ¿Continuar?')) return;
+      db=parsed; if(!db.meta)db.meta={lastBackup:null,apiKey:''};
+      save(); renderAll(); showToast('✓ Backup restaurado');
+    }catch(e){showToast('Archivo no válido',3000);}
+  };
+  r.readAsText(file);
+}
+
+function updateBackupLabel(){
+  const lbl=$('last-backup-lbl'); if(!lbl) return;
+  if(!db.meta.lastBackup){lbl.textContent='nunca';return;}
+  const d=new Date(db.meta.lastBackup);
+  const p=n=>n.toString().padStart(2,'0');
+  lbl.textContent=p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+/* ══════════════════════════════════════════════
+   NAVEGACIÓN
+══════════════════════════════════════════════ */
+let currentView='clas';
+
+function sv(v){
+  ['clas','jorn','detail','set'].forEach(id=>$('v-'+id).classList.toggle('active',id===v));
+  ['t0','t1','t2'].forEach((tid,i)=>$(tid).classList.toggle('on',i===['clas','jorn','set'].indexOf(v)));
+  currentView=v;
+  if(v==='clas'){$('sb-title').textContent='Quiniela Peña';}
+  else if(v==='jorn'){$('sb-title').textContent='Jornadas';}
+  else if(v==='set'){$('sb-title').textContent='Ajustes';}
+}
+
+function renderAll(){
+  renderSeasonSelector();
+  renderClas();
+  renderJornadas();
+  renderSettings();
+}
+
+/* ══════════════════════════════════════════════
+   EVENTOS
+══════════════════════════════════════════════ */
+$('t0').onclick=()=>sv('clas');
+$('t1').onclick=()=>sv('jorn');
+$('t2').onclick=()=>{sv('set');renderSettings();};
+
+$('season-chip').onclick=()=>{renderSeasonList();$('modal-season').classList.add('open');};
+$('create-season-btn').onclick=()=>createSeason($('new-season-input').value);
+$('new-season-input').addEventListener('keydown',e=>{if(e.key==='Enter')createSeason($('new-season-input').value);});
+
+$('nueva-jornada-btn').onclick=()=>{
+  const season=getSeason();
+  if(!season||!season.players.length){showToast('Añade jugadores primero',2500);return;}
+  openEntryModal(getNextJnum());
+};
+
+$('entry-search').oninput=e=>renderEntryList(e.target.value);
+$('entry-save-btn').onclick=saveEntry;
+
+$('detail-back').onclick=()=>sv('jorn');
+$('detail-edit-btn').onclick=()=>{if(currentDetailJnum)openEntryModal(currentDetailJnum);};
+$('detail-export-btn').onclick=()=>{if(currentDetailJnum)openExportModal(currentDetailJnum);};
+
+$('export-clas-btn').onclick=()=>openExportModal('clas');
+$('export-img-btn').onclick=exportImage;
+$('export-xls-btn').onclick=exportExcel;
+
+$('add-player-btn').onclick=addPlayer;
+$('player-input').addEventListener('keydown',e=>{if(e.key==='Enter')addPlayer();});
+
+$('save-season-btn').onclick=()=>{
+  const s=getSeason();
+  if(!s){showToast('Crea una temporada primero',2500);return;}
+  s.name=$('season-input').value.trim()||s.name;
+  s.rounds=parseInt($('rounds-input').value)||38;
+  save(); renderSeasonSelector(); renderSettings();
+  showToast('✓ Configuración guardada');
+};
+
+$('new-season-btn').onclick=()=>{$('modal-season').classList.add('open');renderSeasonList();};
+
+$('save-apikey-btn').onclick=()=>{
+  db.meta.apiKey=$('apikey-input').value.trim();
+  save(); showToast('✓ API Key guardada');
+};
+
+$('ocr-import-btn').onclick=()=>{$('ocr-result-area').innerHTML='';$('modal-ocr').classList.add('open');};
+$('ocr-zone').onclick=()=>$('photo-input').click();
+$('photo-input').onchange=e=>{if(e.target.files[0]){runOCR(e.target.files[0]);}e.target.value='';};
+
+$('backup-export-btn').onclick=exportBackup;
+$('backup-import-btn').onclick=()=>$('file-input').click();
+$('file-input').onchange=e=>{if(e.target.files[0])importBackup(e.target.files[0]);e.target.value='';};
+
+// Cerrar modals al tocar el fondo
+['modal-season','modal-entry','modal-export','modal-ocr'].forEach(id=>{
+  $(id).addEventListener('click',e=>{if(e.target===$(id))$(id).classList.remove('open');});
+});
+
+/* Reloj en statusbar */
+const updateClock=()=>{const t=new Date();const p=n=>n.toString().padStart(2,'0');/* no mostrar reloj en SB, se usa para otras cosas */};
+updateClock();
+
+/* Service Worker */
+if('serviceWorker'in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+
+/* ══════════════════════════════════════════════
+   ARRANQUE
+══════════════════════════════════════════════ */
+// Si no hay temporada, crear una por defecto
+if(!db.seasons.length){
+  const id=Date.now();
+  db.seasons.push({id,name:'2024-25',rounds:38,players:[],jornadas:[],imported:null});
+  db.activeSeason=id;
+  save();
+}
+renderAll();
+</script>
+</body>
+</html>

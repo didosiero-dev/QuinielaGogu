@@ -1214,20 +1214,27 @@ function exportImage(){
   const season=getSeason();
   if(!season){showToast('Sin temporada activa',2000);return;}
 
-  // DEBUG — remove after fix
-  const jornNums=(season.jornadas||[]).map(j=>j.num);
-  const importedUpTo=season.imported?season.imported.upToRound:0;
-  const freshStandingsDebug=computeStandings(season);
-  const top3=freshStandingsDebug.slice(0,3).map(p=>p.name+':'+p.aciertos).join(', ');
-  alert('DEBUG EXPORTAR\nJornadas guardadas: '+JSON.stringify(jornNums)+'\nImportado hasta: '+importedUpTo+'\nTop 3: '+top3);
-
-  // Pre-compute standings NOW from fresh data, before any async operations
+  // Pre-compute standings from fresh season
   const freshStandings = exportMode==='clas' ? computeStandings(season) : null;
+
+  // DEBUG 2 — verify freshStandings has correct data
+  if(freshStandings){
+    const top3=freshStandings.slice(0,3).map(p=>p.name+':'+p.aciertos).join(', ');
+    const jornNums=(season.jornadas||[]).map(j=>j.num);
+    alert('DEBUG 2 — freshStandings calculado:\nTop 3: '+top3+'\nJornadas en season: '+JSON.stringify(jornNums)+'\nA punto de pasar a buildImageHtml...');
+  }
 
   const pad=n=>n.toString().padStart(2,'0');
   const now=new Date();
 
   const imgHtml=buildImageHtml(exportMode, season, freshStandings);
+  
+  // DEBUG 3 — verify inside buildImageHtml what standings it used
+  if(freshStandings){
+    const imgTop = imgHtml.includes(freshStandings[0].name) ? 'OK nombre encontrado en HTML' : 'ERROR nombre NO encontrado';
+    const imgPts = imgHtml.includes('>'+freshStandings[0].aciertos+'<') ? 'OK puntos encontrados' : 'ERROR puntos NO encontrados (esperado: '+freshStandings[0].aciertos+')';
+    alert('DEBUG 3 — imagen HTML generada:\n'+imgTop+'\n'+imgPts);
+  }
   if(!imgHtml) return;
 
   const container=document.createElement('div');

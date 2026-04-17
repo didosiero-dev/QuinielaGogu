@@ -376,8 +376,8 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 <div class="moverlay" id="modal-season">
   <div class="msheet">
     <div class="mhandle"></div>
-    <div class="mtitle">Cambiar temporada</div>
-    <div class="msub">Selecciona o crea una temporada</div>
+    <div class="mtitle" id="season-modal-title">Temporadas</div>
+    <div class="msub" id="season-modal-sub">Selecciona o crea una temporada</div>
     <div id="season-list" style="padding:0 16px 8px"></div>
     <div style="padding:0 16px 4px;font-size:12px;color:var(--t3)">Nueva temporada</div>
     <div style="padding:0 16px 8px;display:flex;gap:8px">
@@ -541,8 +541,13 @@ function lastJornada(season){
 function renderClas(){
   const season=getSeason();
   $('clas-season-lbl').textContent=season?season.name:'—';
-  if(!season||!season.players.length){
-    $('clas-list').innerHTML=`<div style="text-align:center;padding:4rem 2rem;color:var(--t2)"><div style="font-size:48px;margin-bottom:12px">⚽</div><div style="font-size:16px;font-weight:600">Sin jugadores</div><div style="font-size:13px;margin-top:6px">Ve a Ajustes para añadir jugadores</div></div>`;
+  if(!season){
+    $('clas-list').innerHTML=`<div style="text-align:center;padding:4rem 2rem;color:var(--t2)"><div style="font-size:48px;margin-bottom:12px">⚽</div><div style="font-size:16px;font-weight:600">Sin temporada activa</div><div style="font-size:13px;margin-top:6px;margin-bottom:16px">Pulsa el selector de temporada arriba para crear la primera</div></div>`;
+    $('clas-meta').textContent='';
+    return;
+  }
+  if(!season.players.length){
+    $('clas-list').innerHTML=`<div style="text-align:center;padding:4rem 2rem;color:var(--t2)"><div style="font-size:48px;margin-bottom:12px">👥</div><div style="font-size:16px;font-weight:600">Sin jugadores</div><div style="font-size:13px;margin-top:6px">Ve a Ajustes para añadir jugadores o importar la clasificación inicial</div></div>`;
     $('clas-meta').textContent='';
     return;
   }
@@ -794,11 +799,21 @@ function renderSeasonSelector(){
 }
 
 function renderSeasonList(){
+  const titleEl=$('season-modal-title');
+  const subEl=$('season-modal-sub');
+  if(!db.seasons.length){
+    if(titleEl) titleEl.textContent='Bienvenido';
+    if(subEl) subEl.textContent='Crea tu primera temporada para empezar';
+    $('season-list').innerHTML=`<div style="padding:12px 16px 4px;text-align:center;color:var(--t2);font-size:13px">Introduce el nombre y el número de jornadas.</div>`;
+    return;
+  }
+  if(titleEl) titleEl.textContent='Temporadas';
+  if(subEl) subEl.textContent='Selecciona o crea una temporada';
   $('season-list').innerHTML=db.seasons.map(s=>`
     <div class="set-row" style="${s.id===db.activeSeason?'background:var(--green-dim)':''}">
       <div style="flex:1">
         <div style="font-size:14px;font-weight:600;color:var(--t1)">${s.name}</div>
-        <div style="font-size:12px;color:var(--t2)">${s.players.length} jugadores · ${(s.jornadas||[]).length} jornadas</div>
+        <div style="font-size:12px;color:var(--t2)">${s.players.length} jugadores · ${(s.jornadas||[]).length} jornadas · ${s.rounds?s.rounds+' jornadas previstas':'sin límite'}</div>
       </div>
       ${s.id===db.activeSeason?'<span class="badge badge-green">Activa</span>':
         `<button class="btn btn-sm btn-secondary" onclick="selectSeason(${s.id})">Usar</button>`}
@@ -1293,8 +1308,11 @@ $('backup-import-btn').onclick=()=>$('file-input').click();
 $('file-input').onchange=e=>{if(e.target.files[0])importBackup(e.target.files[0]);e.target.value='';};
 
 // Cerrar modals al tocar el fondo
-['modal-season','modal-entry','modal-export','modal-ocr'].forEach(id=>{
+['modal-entry','modal-export','modal-ocr'].forEach(id=>{
   $(id).addEventListener('click',e=>{if(e.target===$(id))$(id).classList.remove('open');});
+});
+$('modal-season').addEventListener('click',e=>{
+  if(e.target===$('modal-season')&&db.seasons.length>0) $('modal-season').classList.remove('open');
 });
 
 /* Reloj en statusbar */
@@ -1309,14 +1327,15 @@ if('serviceWorker'in navigator){
 /* ══════════════════════════════════════════════
    ARRANQUE
 ══════════════════════════════════════════════ */
-// Si no hay temporada, crear una por defecto
-if(!db.seasons.length){
-  const id=Date.now();
-  db.seasons.push({id,name:'2024-25',rounds:null,players:[],jornadas:[],imported:null});
-  db.activeSeason=id;
-  save();
-}
+// Si no hay temporada, mostrar pantalla de bienvenida
 renderAll();
+if(!db.seasons.length){
+  // Abrir modal de temporada automáticamente para que el usuario cree la primera
+  setTimeout(()=>{
+    renderSeasonList();
+    $('modal-season').classList.add('open');
+  }, 300);
+}
 </script>
 </body>
 </html>

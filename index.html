@@ -1214,6 +1214,13 @@ function exportImage(){
   const season=getSeason();
   if(!season){showToast('Sin temporada activa',2000);return;}
 
+  // DEBUG — remove after fix
+  const jornNums=(season.jornadas||[]).map(j=>j.num);
+  const importedUpTo=season.imported?season.imported.upToRound:0;
+  const freshStandingsDebug=computeStandings(season);
+  const top3=freshStandingsDebug.slice(0,3).map(p=>p.name+':'+p.aciertos).join(', ');
+  alert('DEBUG EXPORTAR\nJornadas guardadas: '+JSON.stringify(jornNums)+'\nImportado hasta: '+importedUpTo+'\nTop 3: '+top3);
+
   // Pre-compute standings NOW from fresh data, before any async operations
   const freshStandings = exportMode==='clas' ? computeStandings(season) : null;
 
